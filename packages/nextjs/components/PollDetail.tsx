@@ -26,6 +26,8 @@ export default function PollDetail({ id }: { id: bigint }) {
   const isAnyInvalid = Object.values(isVotesInvalid).some(v => v);
   const [result, setResult] = useState<{ candidate: string; votes: number }[] | null>(null);
   const [status, setStatus] = useState<PollStatus>();
+  const [voted, setVoted] = useState<boolean>(false);
+  const [voting, setVoting] = useState<boolean>(false);
 
   useEffect(() => {
     if (!poll || !poll.metadata) {
@@ -130,6 +132,8 @@ export default function PollDetail({ id }: { id: bigint }) {
       return;
     }
 
+    setVoting(true);
+
     const votesToMessage = votes.map((v, i) =>
       getMessageAndEncKeyPair(
         stateIndex,
@@ -167,9 +171,12 @@ export default function PollDetail({ id }: { id: bigint }) {
       }
 
       notification.success("Vote casted successfully");
+      setVoted(true);
     } catch (err) {
       console.log("err", err);
       notification.error("Casting vote failed, please try again ");
+    } finally {
+      setVoting(false);
     }
   };
 
@@ -224,32 +231,61 @@ export default function PollDetail({ id }: { id: bigint }) {
     <div className="container mx-auto pt-10">
       <div className="flex h-full flex-col md:w-2/3 lg:w-1/2 mx-auto">
         <div className="flex flex-row items-center my-5">
-          <div className="text-2xl font-bold ">Vote for {poll?.name}</div>
+          <div className="text-2xl font-bold ">
+            Vote for {poll?.name}
+            {status === PollStatus.CLOSED && " (Closed)"}
+          </div>
         </div>
-        {poll?.options.map((candidate, index) => (
-          <div className="pb-5 flex" key={index}>
-            <VoteCard
-              pollOpen={status === PollStatus.OPEN}
-              index={index}
-              candidate={candidate}
-              clicked={false}
-              pollType={pollType}
-              onChange={(checked, votes) => voteUpdated(index, checked, votes)}
-              isInvalid={Boolean(isVotesInvalid[index])}
-              setIsInvalid={status => setIsVotesInvalid({ ...isVotesInvalid, [index]: status })}
-            />
+        {voted ? (
+          <div>
+            <p className="font-bold">Voted:</p>
+            <ul>
+              {votes.map(vote => (
+                <li key={vote.index} className="bg-primary flex w-full px-2 py-2 rounded-lg mb-2">
+                  {poll?.options[vote.index]}: {vote.votes} votes
+                </li>
+              ))}
+            </ul>
+            {status === PollStatus.OPEN && (
+              <div className={`mt-2 shadow-2xl`}>
+                <button
+                  onClick={() => setVoted(false)}
+                  className="hover:border-black border-2 border-accent w-full text-lg text-center bg-accent py-3 rounded-xl font-bold mt-4"
+                >
+                  Change Vote
+                </button>
+              </div>
+            )}
           </div>
-        ))}
-        {status === PollStatus.OPEN && (
-          <div className={`mt-2 shadow-2xl`}>
-            <button
-              onClick={castVote}
-              disabled={!true}
-              className="hover:border-black border-2 border-accent w-full text-lg text-center bg-accent py-3 rounded-xl font-bold"
-            >
-              {true ? "Vote Now" : "Voting Closed"}{" "}
-            </button>
-          </div>
+        ) : (
+          <>
+            {poll?.options.map((candidate, index) => (
+              <div className="pb-5 flex" key={index}>
+                <VoteCard
+                  pollOpen={status === PollStatus.OPEN}
+                  index={index}
+                  candidate={candidate}
+                  clicked={false}
+                  currentVotes={votes.find(v => v.index === index)?.votes}
+                  pollType={pollType}
+                  onChange={(checked, votes) => voteUpdated(index, checked, votes)}
+                  isInvalid={Boolean(isVotesInvalid[index])}
+                  setIsInvalid={status => setIsVotesInvalid({ ...isVotesInvalid, [index]: status })}
+                />
+              </div>
+            ))}
+            {status === PollStatus.OPEN && (
+              <div className={`mt-2 shadow-2xl`}>
+                <button
+                  onClick={castVote}
+                  disabled={voting}
+                  className="hover:border-black border-2 border-accent w-full text-lg text-center bg-accent py-3 rounded-xl font-bold disabled:cursor-not-allowed disabled:border-none"
+                >
+                  Vote Now
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {result && (

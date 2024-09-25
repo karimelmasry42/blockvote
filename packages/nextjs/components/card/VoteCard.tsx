@@ -10,11 +10,21 @@ type VoteCardProps = {
   setIsInvalid: (value: boolean) => void;
   isInvalid: boolean;
   pollOpen: boolean;
+  currentVotes?: number;
 };
 
-const VoteCard = ({ index, candidate, onChange, pollType, isInvalid, setIsInvalid, pollOpen }: VoteCardProps) => {
-  const [selected, setSelected] = useState(false);
-  const [votes, setVotes] = useState(0);
+const VoteCard = ({
+  index,
+  candidate,
+  onChange,
+  pollType,
+  isInvalid,
+  setIsInvalid,
+  pollOpen,
+  currentVotes,
+}: VoteCardProps) => {
+  const [selected, setSelected] = useState(currentVotes && currentVotes > 0 ? true : false);
+  const [votes, setVotes] = useState(currentVotes || 0);
   const votesFieldRef = useRef<HTMLInputElement>(null);
 
   return (
@@ -25,6 +35,7 @@ const VoteCard = ({ index, candidate, onChange, pollType, isInvalid, setIsInvali
             type={pollType === PollType.SINGLE_VOTE ? "radio" : "checkbox"}
             className="mr-2"
             value={index}
+            checked={selected}
             onChange={e => {
               console.log(e.target.checked);
               setSelected(e.target.checked);
@@ -72,6 +83,7 @@ const VoteCard = ({ index, candidate, onChange, pollType, isInvalid, setIsInvali
           placeholder="Votes"
           min={0}
           step={1}
+          defaultValue={currentVotes || ""}
           onChange={function (e) {
             if (
               Number(e.currentTarget.value) < 0 ||
