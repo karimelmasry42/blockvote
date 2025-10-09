@@ -91,11 +91,11 @@ BlockVote demonstrates how decentralized technologies can ensure **trust**, **in
 
 | Name | Role | Responsibilities |
 |------|------|------------------|
-| **Yousef Kamal** | Blockchain & Security | Smart contracts, blockchain integration, encryption design |
-| **Felopater Osama** | AI Engineer | Fraud detection model, anomaly detection, AI pipeline |
-| **Amer Ashoush** | Backend Developer | RESTful API development, secure data flow, integration |
-| **Omar Hamdy** | Web Developer | Admin dashboard UI and web integration |
-| **Karim Elmasry** | Mobile Developer | Flutter-based voter app and UX design |
+| [![Yousef Kamal](https://img.shields.io/badge/Yousef%20Kamal-100000?style=flat&logo=github&logoColor=white)](https://github.com/YxFarghaly) | Blockchain & Security | Smart contracts, blockchain integration, encryption design |
+| [![Felopater Osama](https://img.shields.io/badge/Felopater%20Osama-100000?style=flat&logo=github&logoColor=white)](#) | AI Engineer | Fraud detection model, anomaly detection, AI pipeline |
+| [![Amer Ashoush](https://img.shields.io/badge/Amer%20Ashoush-100000?style=flat&logo=github&logoColor=white)](https://github.com/Mororock6) | Backend Developer | RESTful API development, secure data flow, integration |
+| [![Omar Hamdy](https://img.shields.io/badge/Omar%20Hamdy-100000?style=flat&logo=github&logoColor=white)](https://github.com/omarhamdy308) | Web Developer | Admin dashboard UI and web integration |
+| [![Karim Elmasry](https://img.shields.io/badge/Karim%20Elmasry-100000?style=flat&logo=github&logoColor=white)](https://github.com/karimelmasry42) | Mobile Developer | Flutter-based voter app and UX design |
 
 **Supervisor:** Dr. Hesham Dahshan  
 *Arab Academy for Science, Technology and Maritime Transport (AASTMT)*  
