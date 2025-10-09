@@ -14,7 +14,7 @@
 The system leverages **blockchain** for immutable record-keeping, **cryptography** for voter anonymity and authentication,  
 and **artificial intelligence (AI)** for detecting fraudulent or abnormal voting behavior.  
 
-Developed as part of the **AASTMT College of Engineering and Technology – Cybersecurity Graduation Project (2025–2026)**,  
+Developed as part of the **AASTMT College of Computing and Information Technology – Cybersecurity Graduation Project (2025–2026)**,  
 BlockVote demonstrates how decentralized technologies can ensure **trust**, **integrity**, and **verifiability** in modern digital elections.  
 
 ---
@@ -25,7 +25,6 @@ BlockVote demonstrates how decentralized technologies can ensure **trust**, **in
 - Provide **secure digital identity management** using cryptographic verification.  
 - Deliver a **hybrid architecture** accessible via web and mobile clients.  
 - Integrate **AI-based fraud detection** to monitor anomalies and suspicious voting patterns.  
-- Apply **engineering standards** such as IEEE documentation and NIST security guidelines.  
 
 ---
 
@@ -73,6 +72,8 @@ BlockVote demonstrates how decentralized technologies can ensure **trust**, **in
 
 ## 🧪 Technology Stack  
 
+> ⚠️ Implementation in progress — this section will be updated as modules are developed.  
+
 | Layer | Technologies |
 |-------|--------------|
 | **Frontend (Web)** | React, TailwindCSS |
@@ -90,11 +91,11 @@ BlockVote demonstrates how decentralized technologies can ensure **trust**, **in
 
 | Name | Role | Responsibilities |
 |------|------|------------------|
-| **Karim Elmasry** | Blockchain & Security Lead | Smart contracts, blockchain integration, encryption design |
-| **Amer Ashoush** | AI Engineer | Fraud detection model, anomaly detection, AI pipeline |
-| **Yousef Kamal** | Backend Developer | RESTful API development, secure data flow, integration |
-| **Felopater Osama** | Web Developer | Admin dashboard UI and web integration |
-| **Omar Hamdy** | Mobile Developer | Flutter-based voter app and UX design |
+| **Yousef Kamal** | Blockchain & Security | Smart contracts, blockchain integration, encryption design |
+| **Felopater Osama** | AI Engineer | Fraud detection model, anomaly detection, AI pipeline |
+| **Amer Ashoush** | Backend Developer | RESTful API development, secure data flow, integration |
+| **Omar Hamdy** | Web Developer | Admin dashboard UI and web integration |
+| **Karim Elmasry** | Mobile Developer | Flutter-based voter app and UX design |
 
 **Supervisor:** Dr. Hesham Dahshan  
 *Arab Academy for Science, Technology and Maritime Transport (AASTMT)*  
@@ -122,19 +123,6 @@ BlockVote demonstrates how decentralized technologies can ensure **trust**, **in
 
 ---
 
-## 📄 Abstract *(AASTMT Format)*  
-
-This project presents **BlockVote**, a decentralized digital voting and identity verification platform powered by **blockchain technology** and **artificial intelligence (AI)**.  
-The system ensures **transparency**, **integrity**, and **anonymity** of electronic votes while maintaining verifiable digital identities.  
-A **hybrid architecture** combining web and mobile interfaces enhances accessibility and usability for voters and administrators.  
-The **blockchain layer** secures votes immutably, while **cryptographic algorithms** protect voter privacy.  
-An **AI-based fraud detection model** analyzes blockchain events to detect abnormal or malicious voting behavior.  
-By integrating blockchain, cryptography, and AI, BlockVote demonstrates a secure, tamper-proof, and scalable approach to modern digital elections.  
-
-**Keywords:** Blockchain, Digital Voting, Identity Management, AI, Cybersecurity, Decentralization  
-
----
-
 ## ⚙️ How to Run (Development Setup)  
 
-> ⚠️ Implementation in progress — this section will be updated as modules are developed during Semester 2.  
+> ⚠️ Implementation in progress — this section will be updated as modules are developed.  
