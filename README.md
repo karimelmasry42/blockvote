@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🗳️ BlockVote  
 ### Secure Voting and Identity Management System using Blockchain & AI  
 
@@ -205,4 +204,3 @@ Your contributions are welcome! Feel free to report issues, submit fixes, or sug
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
->>>>>>> source/main
