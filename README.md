@@ -67,9 +67,9 @@ BlockVote demonstrates how decentralized technologies can ensure **trust**, **in
 |------|------|------------------|
 | [![Yousef Kamal](https://img.shields.io/badge/Yousef%20Kamal-100000?style=flat&logo=github&logoColor=white)](https://github.com/YxFarghaly) | Backend Developer | RESTful API development, secure data flow, integration |
 | [![Felopater Osama](https://img.shields.io/badge/Felopater%20Osama-100000?style=flat&logo=github&logoColor=white)](#) | Backend Developer | RESTful API development, secure data flow, integration |
-| [![Amer Ashoush](https://img.shields.io/badge/Amer%20Ashoush-100000?style=flat&logo=github&logoColor=white)](https://github.com/Mororock6) |  Web Developer | Admin dashboard UI and web integration | 
+| [![Amer Ashoush](https://img.shields.io/badge/Amer%20Ashoush-100000?style=flat&logo=github&logoColor=white)](https://github.com/Mororock6) |  Web Developer | Admin dashboard UI and web integration | | 
 AI Engineer | Fraud detection model, anomaly detection, AI pipeline |
-| [![Omar Hamdy](https://img.shields.io/badge/Omar%20Hamdy-100000?style=flat&logo=github&logoColor=white)](https://github.com/omarhamdy308) | Web Developer | Admin dashboard UI and web integration | 
+| [![Omar Hamdy](https://img.shields.io/badge/Omar%20Hamdy-100000?style=flat&logo=github&logoColor=white)](https://github.com/omarhamdy308) | Web Developer | Admin dashboard UI and web integration | |
 AI Engineer | Fraud detection model, anomaly detection, AI pipeline |
 | [![Karim Elmasry](https://img.shields.io/badge/Karim%20Elmasry-100000?style=flat&logo=github&logoColor=white)](https://github.com/karimelmasry42) | Blockchain & Security | Smart contracts, blockchain integration, encryption design |
 
