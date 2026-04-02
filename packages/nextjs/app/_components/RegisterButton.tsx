@@ -22,20 +22,29 @@ export default function RegisterButton() {
 
   if (!keypair) {
     return (
-      <button className="border border-slate-600 bg-primary px-3 py-2 rounded-lg font-bold" onClick={generateKeypair}>
-        Login
+      <button
+        className="border border-slate-600 bg-primary px-5 py-3 rounded-lg font-bold hover:bg-secondary hover:shadow-md transition"
+        onClick={generateKeypair}
+      >
+        Get Started
       </button>
     );
   }
 
-  if (isRegistered) return <div>Thanks for Registration</div>;
+  if (isRegistered) {
+    return (
+      <div className="border border-slate-600 bg-base-100 px-5 py-3 rounded-lg font-semibold">
+        Registration Complete
+      </div>
+    );
+  }
 
   return (
-    <>
-      (You are not registered yet)
-      <button className="border border-slate-600 bg-primary px-3 py-2 rounded-lg font-bold" onClick={register}>
-        Register
-      </button>
-    </>
+    <button
+      className="border border-slate-600 bg-primary px-5 py-3 rounded-lg font-bold hover:bg-secondary hover:shadow-md transition"
+      onClick={register}
+    >
+      Register to Vote
+    </button>
   );
 }
