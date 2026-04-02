@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
@@ -46,6 +47,7 @@ export default function AdminPage() {
           <table className="border-separate w-full mt-7 mb-4">
             <thead>
               <tr className="text-lg font-extralight">
+                <th className="border border-slate-600 bg-primary">Poll ID</th>
                 <th className="border border-slate-600 bg-primary">Poll Name</th>
                 <th className="border border-slate-600 bg-primary">Start Time</th>
                 <th className="border border-slate-600 bg-primary">End Time</th>
@@ -54,17 +56,21 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {polls.map(poll => (
-                <tr key={poll.id} className="pt-10 text-center">
+                <tr key={poll.id.toString()} className="pt-10 text-center">
+                  <td className="border border-slate-600 py-2 px-1 text-sm font-medium">{poll.id.toString()}</td>
                   <td>
                     <div className="flex flex-col gap-2">
                       <div>{poll.name}</div>
                       <div className="flex flex-wrap gap-2 justify-center">
                         {poll.candidateOptions?.slice(0, 3).map((candidate, index) => (
                           <div key={index} className="flex items-center gap-2 bg-primary rounded-lg px-2 py-1">
-                            <img
+                            <Image
                               src={candidate.image || "/default-candidate.png"}
                               alt={candidate.name}
-                              className="w-6 h-6 rounded-full object-cover border border-slate-400"
+                              width={24}
+                              height={24}
+                              className="rounded-full object-cover border border-slate-400"
+                              unoptimized
                             />
                             <span className="text-xs">{candidate.name}</span>
                           </div>

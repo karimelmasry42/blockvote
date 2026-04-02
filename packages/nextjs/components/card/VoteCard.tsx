@@ -1,4 +1,5 @@
 import { memo, useRef, useState } from "react";
+import Image from "next/image";
 import { CandidateOption, DEFAULT_CANDIDATE_IMAGE, PollType } from "~~/types/poll";
 
 type VoteCardProps = {
@@ -70,10 +71,13 @@ const VoteCard = ({
           />
         )}
 
-        <img
+        <Image
           src={candidate.image || DEFAULT_CANDIDATE_IMAGE}
           alt={candidate.name}
-          className="w-14 h-14 rounded-full object-cover border border-slate-400 shrink-0"
+          width={56}
+          height={56}
+          className="rounded-full object-cover border border-slate-400 shrink-0"
+          unoptimized
         />
 
         <div className={`flex-1 ${!pollOpen ? "ml-2" : ""}`}>

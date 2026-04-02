@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { genRandomSalt } from "maci-crypto";
 import { Keypair, PCommand, PubKey } from "maci-domainobjs";
 import { useContractRead, useContractWrite } from "wagmi";
@@ -404,10 +405,13 @@ export default function PollDetail({ id }: { id: bigint }) {
 
                 return (
                   <li key={vote.index} className="bg-primary flex w-full px-3 py-3 rounded-lg mb-2 items-center gap-3">
-                    <img
+                    <Image
                       src={candidate?.image || DEFAULT_CANDIDATE_IMAGE}
-                      alt={candidate?.name || poll?.options[vote.index]}
-                      className="w-12 h-12 rounded-full object-cover border border-slate-400 shrink-0"
+                      alt={(candidate?.name || poll?.options?.[vote.index] || "Candidate") as string}
+                      width={48}
+                      height={48}
+                      className="rounded-full object-cover border border-slate-400 shrink-0"
+                      unoptimized
                     />
                     <div className="flex-1">
                       <div className="font-semibold">{candidate?.name || poll?.options[vote.index]}</div>
@@ -502,10 +506,13 @@ export default function PollDetail({ id }: { id: bigint }) {
                       <td>{i + 1}</td>
                       <td>
                         <div className="flex items-center gap-3 justify-center">
-                          <img
+                          <Image
                             src={r.candidate.image || DEFAULT_CANDIDATE_IMAGE}
                             alt={r.candidate.name}
-                            className="w-10 h-10 rounded-full object-cover border border-slate-400"
+                            width={40}
+                            height={40}
+                            className="rounded-full object-cover border border-slate-400"
+                            unoptimized
                           />
                           <div className="text-left">
                             <div>{r.candidate.name}</div>
