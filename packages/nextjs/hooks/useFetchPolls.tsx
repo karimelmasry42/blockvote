@@ -56,7 +56,13 @@ export const useFetchPolls = (currentPage = 1, limit = 10, reversed = true) => {
         });
       }
 
-      const sortedPolls = _polls.sort((a, b) => Number(b.startTime) - Number(a.startTime));
+      const sortedPolls = _polls.sort((a, b) => {
+        const startDiff = Number(b.startTime) - Number(a.startTime);
+        if (startDiff !== 0) {
+          return startDiff;
+        }
+        return Number(b.id) - Number(a.id);
+      });
       setPolls(sortedPolls);
     }, 1000);
 

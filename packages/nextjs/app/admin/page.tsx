@@ -46,6 +46,7 @@ export default function AdminPage() {
           <table className="border-separate w-full mt-7 mb-4">
             <thead>
               <tr className="text-lg font-extralight">
+                <th className="border border-slate-600 bg-primary">Poll ID</th>
                 <th className="border border-slate-600 bg-primary">Poll Name</th>
                 <th className="border border-slate-600 bg-primary">Start Time</th>
                 <th className="border border-slate-600 bg-primary">End Time</th>
@@ -54,7 +55,8 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {polls.map(poll => (
-                <tr key={poll.id} className="pt-10 text-center">
+                <tr key={poll.id.toString()} className="pt-10 text-center">
+                  <td className="border border-slate-600 py-2 px-1 text-sm font-medium">{poll.id.toString()}</td>
                   <td>
                     <div className="flex flex-col gap-2">
                       <div>{poll.name}</div>

@@ -29,7 +29,11 @@ export default function Polls() {
           <>
             <div className="mb-3 flex flex-col gap-y-2">
               {polls.map(poll => (
-                <HoverBorderCard key={poll.id} showArrow={true} click={() => router.push(`/polls/${poll.id}`)}>
+                <HoverBorderCard
+                  key={poll.id.toString()}
+                  showArrow={true}
+                  click={() => router.push(`/polls/${poll.id.toString()}`)}
+                >
                   <div className="flex">
                     <div className="flex-1 flex flex-col gap-1">
                       <h1 className="text-lg font-bold">
