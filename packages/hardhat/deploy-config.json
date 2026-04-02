@@ -324,8 +324,8 @@
     },
     "Poll": {
       "pollDuration": 30,
-      "coordinatorPubkey": "macipk.29add77d27341c4cdfc2fb623175ecfd6527a286e3e7ded785d9fd7afbbdf399",
-      "useQuadraticVoting": true
+      "coordinatorPubkey": "macipk.01c53c6bae4a7a1bdad95f790e525213debee625d5a7511fa9a1b358fb65fe89",
+      "useQuadraticVoting": false
     }
   },
   "base_sepolia": {
