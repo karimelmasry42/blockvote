@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
@@ -63,10 +64,13 @@ export default function AdminPage() {
                       <div className="flex flex-wrap gap-2 justify-center">
                         {poll.candidateOptions?.slice(0, 3).map((candidate, index) => (
                           <div key={index} className="flex items-center gap-2 bg-primary rounded-lg px-2 py-1">
-                            <img
+                            <Image
                               src={candidate.image || "/default-candidate.png"}
                               alt={candidate.name}
-                              className="w-6 h-6 rounded-full object-cover border border-slate-400"
+                              width={24}
+                              height={24}
+                              className="rounded-full object-cover border border-slate-400"
+                              unoptimized
                             />
                             <span className="text-xs">{candidate.name}</span>
                           </div>
