@@ -33,6 +33,7 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		uint256 numOfOptions;
 		string[] options;
 		string tallyJsonCID;
+		bool paused;
 	}
 
 	mapping(uint256 => PollData) internal _polls;
@@ -56,12 +57,18 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	);
 
 	event PollTallyCIDUpdated(uint256 indexed pollId, string tallyJsonCID);
+	event PollPaused(uint256 indexed pollId);
+	event PollResumed(uint256 indexed pollId);
+	event PollClosed(uint256 indexed pollId);
 
 	// pubkey.x => pubkey.y => bool
 	mapping(uint256 => mapping(uint256 => bool)) public isPublicKeyRegistered;
 
 	error PubKeyAlreadyRegistered();
 	error PollAddressDoesNotExist(address _poll);
+	error PollAlreadyPaused(uint256 pollId);
+	error PollIsNotPaused(uint256 pollId);
+	error PollAlreadyClosed(uint256 pollId);
 
 	constructor(
 		IPollFactory _pollFactory,
@@ -172,7 +179,8 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 			endTime: endTime,
 			pollContracts: pollContracts,
 			options: _options,
-			tallyJsonCID: ""
+			tallyJsonCID: "",
+			paused: false
 		});
 
 		emit PollCreated(
@@ -201,6 +209,39 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		poll.tallyJsonCID = _tallyJsonCID;
 
 		emit PollTallyCIDUpdated(_pollId, _tallyJsonCID);
+	}
+
+	function pausePoll(uint256 _pollId) public onlyOwner {
+		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
+		PollData storage poll = _polls[_pollId];
+		if (poll.paused) revert PollAlreadyPaused(_pollId);
+		if (poll.endTime <= block.timestamp) revert PollAlreadyClosed(_pollId);
+
+		poll.paused = true;
+
+		emit PollPaused(_pollId);
+	}
+
+	function resumePoll(uint256 _pollId) public onlyOwner {
+		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
+		PollData storage poll = _polls[_pollId];
+		if (!poll.paused) revert PollIsNotPaused(_pollId);
+		if (poll.endTime <= block.timestamp) revert PollAlreadyClosed(_pollId);
+
+		poll.paused = false;
+
+		emit PollResumed(_pollId);
+	}
+
+	function closePoll(uint256 _pollId) public onlyOwner {
+		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
+		PollData storage poll = _polls[_pollId];
+		if (bytes(poll.tallyJsonCID).length > 0) revert PollAlreadyClosed(_pollId);
+
+		poll.paused = false;
+		poll.endTime = block.timestamp;
+
+		emit PollClosed(_pollId);
 	}
 
 	function fetchPolls(

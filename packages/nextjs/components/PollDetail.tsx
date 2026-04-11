@@ -371,6 +371,7 @@ export default function PollDetail({ id }: { id: bigint }) {
               Vote for {poll?.name}
               {status === PollStatus.CLOSED && " (Closed)"}
               {status === PollStatus.NOT_STARTED && " (Not Started)"}
+              {status === PollStatus.PAUSED && " (Paused)"}
             </div>
 
             {!voted && pollType === PollType.WEIGHTED_MULTIPLE_VOTE && status === PollStatus.OPEN && (
@@ -392,6 +393,11 @@ export default function PollDetail({ id }: { id: bigint }) {
           {status === PollStatus.NOT_STARTED && (
             <div className="mt-4 rounded-xl border border-warning bg-warning/10 px-4 py-3 text-sm font-medium">
               Voting hasn&apos;t started yet. Please come back when the poll opens.
+            </div>
+          )}
+          {status === PollStatus.PAUSED && (
+            <div className="mt-4 rounded-xl border border-warning bg-warning/10 px-4 py-3 text-sm font-medium">
+              Voting has been paused by the admin. Please wait until it is resumed.
             </div>
           )}
         </div>

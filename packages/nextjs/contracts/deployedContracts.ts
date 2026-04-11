@@ -212,7 +212,40 @@ const deployedContracts = {
               type: "uint256",
             },
           ],
+          name: "PollAlreadyClosed",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
+          ],
+          name: "PollAlreadyPaused",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
+          ],
           name: "PollDoesNotExist",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
+          ],
+          name: "PollIsNotPaused",
           type: "error",
         },
         {
@@ -278,6 +311,19 @@ const deployedContracts = {
             },
           ],
           name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
+          ],
+          name: "PollClosed",
           type: "event",
         },
         {
@@ -361,6 +407,32 @@ const deployedContracts = {
               name: "pollId",
               type: "uint256",
             },
+          ],
+          name: "PollPaused",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
+          ],
+          name: "PollResumed",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
             {
               indexed: false,
               internalType: "string",
@@ -419,6 +491,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_pollId",
+              type: "uint256",
+            },
+          ],
+          name: "closePoll",
+          outputs: [],
+          stateMutability: "nonpayable",
           type: "function",
         },
         {
@@ -647,6 +732,11 @@ const deployedContracts = {
                   name: "tallyJsonCID",
                   type: "string",
                 },
+                {
+                  internalType: "bool",
+                  name: "paused",
+                  type: "bool",
+                },
               ],
               internalType: "struct MACIWrapper.PollData",
               name: "poll_",
@@ -744,6 +834,11 @@ const deployedContracts = {
                   internalType: "string",
                   name: "tallyJsonCID",
                   type: "string",
+                },
+                {
+                  internalType: "bool",
+                  name: "paused",
+                  type: "bool",
                 },
               ],
               internalType: "struct MACIWrapper.PollData[]",
@@ -1182,6 +1277,19 @@ const deployedContracts = {
           type: "function",
         },
         {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_pollId",
+              type: "uint256",
+            },
+          ],
+          name: "pausePoll",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
           inputs: [],
           name: "pollFactory",
           outputs: [
@@ -1245,6 +1353,19 @@ const deployedContracts = {
         {
           inputs: [],
           name: "renounceOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_pollId",
+              type: "uint256",
+            },
+          ],
+          name: "resumePoll",
           outputs: [],
           stateMutability: "nonpayable",
           type: "function",
