@@ -5,6 +5,10 @@ import { Poll, PollStatus, RawPoll, getCandidateOptions } from "~~/types/poll";
 export function getPollStatus(poll: RawPoll) {
   const now = Math.round(new Date().getTime() / 1000);
 
+  if (poll.paused && poll.endTime > BigInt(now) && !poll.tallyJsonCID) {
+    return PollStatus.PAUSED;
+  }
+
   if (poll.startTime > BigInt(now)) {
     return PollStatus.NOT_STARTED;
   }

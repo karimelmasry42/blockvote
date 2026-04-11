@@ -8,10 +8,11 @@ import CreatePollModal from "./_components/CreatePollModal";
 import PollStatusModal from "./_components/PollStatusModal";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
-import { useScaffoldContractRead } from "~~/hooks/scaffold-eth";
+import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { useFetchPolls } from "~~/hooks/useFetchPolls";
 import { useTotalPages } from "~~/hooks/useTotalPages";
 import { Poll, PollStatus } from "~~/types/poll";
+import { notification } from "~~/utils/scaffold-eth";
 
 export default function AdminPage() {
   const { address } = useAccount();
@@ -22,6 +23,57 @@ export default function AdminPage() {
   const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
   const totalPages = useTotalPages(totalPolls, limit);
   const [selectedPollForStatusModal, setSelectedPollForStatusModal] = useState<Poll>();
+
+  const { writeAsync: pausePoll, isMining: isPausing } = useScaffoldContractWrite({
+    contractName: "MACIWrapper",
+    functionName: "pausePoll" as const,
+    args: [0n],
+  });
+  const { writeAsync: resumePoll, isMining: isResuming } = useScaffoldContractWrite({
+    contractName: "MACIWrapper",
+    functionName: "resumePoll" as const,
+    args: [0n],
+  });
+  const { writeAsync: closePoll, isMining: isClosing } = useScaffoldContractWrite({
+    contractName: "MACIWrapper",
+    functionName: "closePoll" as const,
+    args: [0n],
+  });
+
+  const handlePausePoll = async (pollId: bigint) => {
+    try {
+      await pausePoll({ args: [pollId] });
+      notification.success("Poll paused");
+      refetchPolls();
+    } catch (err) {
+      console.error(err);
+      notification.error("Failed to pause poll");
+    }
+  };
+
+  const handleResumePoll = async (pollId: bigint) => {
+    try {
+      await resumePoll({ args: [pollId] });
+      notification.success("Poll resumed");
+      refetchPolls();
+    } catch (err) {
+      console.error(err);
+      notification.error("Failed to resume poll");
+    }
+  };
+
+  const handleClosePoll = async (pollId: bigint) => {
+    if (!confirm("Close this poll now? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      await closePoll({ args: [pollId] });
+      refetchPolls();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (!admin || !address) return;
@@ -52,6 +104,7 @@ export default function AdminPage() {
                 <th className="border border-slate-600 bg-primary">Start Time</th>
                 <th className="border border-slate-600 bg-primary">End Time</th>
                 <th className="border border-slate-600 bg-primary">Status</th>
+                <th className="border border-slate-600 bg-primary">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -98,6 +151,37 @@ export default function AdminPage() {
                     ) : (
                       poll.status
                     )}
+                  </td>
+                  <td className="border border-slate-600 py-2 px-1 text-sm">
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {poll.status === PollStatus.PAUSED ? (
+                        <button
+                          className="rounded-lg border border-slate-600 bg-secondary px-3 py-2 text-sm font-semibold text-neutral-content"
+                          onClick={() => handleResumePoll(poll.id)}
+                          disabled={isResuming || isClosing}
+                        >
+                          Resume
+                        </button>
+                      ) : poll.status !== PollStatus.CLOSED && poll.status !== PollStatus.RESULT_COMPUTED ? (
+                        <button
+                          className="rounded-lg border border-slate-600 bg-secondary px-3 py-2 text-sm font-semibold text-neutral-content"
+                          onClick={() => handlePausePoll(poll.id)}
+                          disabled={isPausing || isClosing}
+                        >
+                          Pause
+                        </button>
+                      ) : null}
+
+                      {poll.status !== PollStatus.CLOSED && poll.status !== PollStatus.RESULT_COMPUTED ? (
+                        <button
+                          className="rounded-lg border border-slate-600 bg-accent px-3 py-2 text-sm font-semibold text-neutral-content"
+                          onClick={() => handleClosePoll(poll.id)}
+                          disabled={isClosing}
+                        >
+                          Close
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

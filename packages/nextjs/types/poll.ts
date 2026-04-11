@@ -1,6 +1,7 @@
 export enum PollStatus {
   NOT_STARTED = "Not Started",
   OPEN = "Open",
+  PAUSED = "Paused",
   CLOSED = "Closed",
   RESULT_COMPUTED = "Result Computed",
 }
@@ -32,6 +33,7 @@ export interface RawPoll {
   numOfOptions: bigint;
   options: readonly string[];
   tallyJsonCID: string;
+  paused: boolean;
 }
 
 export interface Poll extends RawPoll {
