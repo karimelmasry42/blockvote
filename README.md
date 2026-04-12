@@ -229,7 +229,7 @@ yarn hardhat:test --grep "test description"
 ```
 packages/
   hardhat/                    → Smart contracts, deployment scripts, Hardhat tasks
-    contracts/                → MACI contracts (mostly upstream, unmodified)
+    contracts/                → Local MACI wrapper/overrides; upstream MACI contracts come from node_modules/maci-contracts
     deploy/                   → Deployment scripts
     tasks/                    → merge, prove (tally flow)
     zkeys/                    → zk-SNARK circuit parameters (downloaded separately)
