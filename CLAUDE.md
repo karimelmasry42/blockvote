@@ -77,7 +77,7 @@ Copy from `.env.example`. Key variables:
 ### `packages/nextjs/.env.local`
 Copy from `.env.example`. Key variables:
 - `NEXT_PUBLIC_PINATA_GATEWAY` — Pinata gateway URL (for reading files stored on IPFS)
-- `PINATA_JWT` — Pinata API JWT token (for uploading tally files to IPFS)
+- `PINATA_JWT` — Pinata API JWT token (server-side only, used by `/api/pinata/upload` route for uploading tally files to IPFS). Do NOT prefix with `NEXT_PUBLIC_`.
 
 ---
 
@@ -192,7 +192,7 @@ Confirmed changes (from Jira BLOCK project):
 | Issue | Severity |
 |---|---|
 | zk-SNARK proof generation fails (`yarn hardhat prove`) | 🔴 Critical |
-| Full tally flow (merge → prove → upload → results) not validated end-to-end | 🔴 Critical |
+| Full tally flow (merge → prove → upload → results) not validated end-to-end (upload step fixed — see `/api/pinata/upload` route) | 🟡 Medium |
 | Poll type restrictions only enforced in UI — contract callable directly, bypassing rules | 🔴 Security gap |
 | Admin = Coordinator (same account/key) — no separation of trust | 🟡 Medium |
 | Voice credit limit (100) not configurable per poll | 🟡 Medium |

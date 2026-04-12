@@ -187,7 +187,7 @@ This produces a `tally-poll-<POLL_ID>.json` file containing the vote counts and 
 1. Open the admin dashboard at [http://localhost:3000](http://localhost:3000)
 2. Navigate to the closed poll
 3. Upload the `tally-poll-<POLL_ID>.json` file
-4. The file is stored on IPFS via Pinata and the result is published on-chain
+4. The file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`) and the IPFS hash is published on-chain
 
 Results are now publicly visible to all voters.
 

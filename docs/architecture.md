@@ -45,7 +45,7 @@ Key pages and their responsibilities:
 
 The frontend interacts with the blockchain via **wagmi** and **viem** hooks (injected by Scaffold-ETH 2). It reads contract state (polls, registration status, results) and sends signed transactions (register, vote, change vote).
 
-**IPFS integration**: Candidate images and descriptions are stored on IPFS via Pinata. The frontend reads the `NEXT_PUBLIC_PINATA_GATEWAY` env variable to construct IPFS URLs. The admin upload flow for tally results also uses Pinata.
+**IPFS integration**: Candidate images and descriptions are stored on IPFS via Pinata. The frontend reads the `NEXT_PUBLIC_PINATA_GATEWAY` env variable to construct IPFS URLs. The admin upload flow for tally results uses a server-side API route (`/api/pinata/upload`) to proxy uploads to Pinata, keeping the `PINATA_JWT` secret on the server.
 
 Environment config: `packages/nextjs/.env.example`
 
@@ -216,14 +216,14 @@ yarn hardhat prove \
 # This triggers on-chain verification and publishes results
 ```
 
-> ⚠️ **Known Issue**: The proof generation flow currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. The Pinata upload step (Step 3) has also not been validated end-to-end. This is a **critical bug** that must be resolved before the project can be considered functional.
+> ⚠️ **Known Issue**: The proof generation flow currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. This is a **critical bug** that must be resolved before the project can be considered functional. The Pinata upload step (Step 3) has been fixed — uploads now go through a server-side API route with proper error handling and loading states.
 
 #### The Pinata/IPFS Role
 Pinata is used in two places:
 
 1. **Candidate metadata**: When creating a poll, candidate images and descriptions are uploaded to IPFS via Pinata. The returned IPFS CID (content hash) is stored on-chain. The frontend reads it back using the `NEXT_PUBLIC_PINATA_GATEWAY` URL.
 
-2. **Tally file**: After proof generation, the `tally.json` file is uploaded to IPFS via Pinata. The IPFS CID is then submitted to the smart contract to publish results. Environment variable: `PINATA_JWT` (server-side, not exposed to browser).
+2. **Tally file**: After proof generation, the `tally.json` file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`). The IPFS CID is then submitted to the smart contract to publish results. Environment variable: `PINATA_JWT` (server-side only, never exposed to the browser).
 
 Both use the same Pinata account and API key. The JWT is used for uploads; the Gateway URL is used for reads.
 
