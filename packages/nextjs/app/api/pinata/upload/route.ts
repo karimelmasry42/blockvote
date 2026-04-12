@@ -1,7 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import axios from "axios";
 
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 10;
+const requestCounts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(request: NextRequest): boolean {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  const now = Date.now();
+  const existing = requestCounts.get(ip);
+
+  if (!existing || existing.resetAt <= now) {
+    requestCounts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+
+  if (existing.count >= RATE_LIMIT_MAX_REQUESTS) {
+    return true;
+  }
+
+  existing.count += 1;
+  return false;
+}
+
 export async function POST(request: NextRequest) {
+  if (isRateLimited(request)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const pinataJWT = process.env.PINATA_JWT;
 
   if (!pinataJWT) {

@@ -6,6 +6,15 @@ import { Poll } from "~~/types/poll";
 import { uploadToPinata } from "~~/utils/pinata";
 import { notification } from "~~/utils/scaffold-eth";
 
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
 export default function PollStatusModal({
   poll,
   show,
@@ -27,15 +36,15 @@ export default function PollStatusModal({
   const isProcessing = isUploading || isMining;
 
   async function uploadTallyFile() {
-    if (!fileInputRef.current?.files?.length || !poll) {
+    if (!fileInputRef.current?.files?.length || !poll || isProcessing) {
       return;
     }
 
-    const file = fileInputRef.current.files[0];
-    const reader = new FileReader();
+    setIsUploading(true);
 
-    reader.onload = async () => {
-      const content = reader.result as string;
+    try {
+      const file = fileInputRef.current.files[0];
+      const content = await readFileAsText(file);
 
       let data: any;
       try {
@@ -52,8 +61,6 @@ export default function PollStatusModal({
         return;
       }
 
-      setIsUploading(true);
-
       let ipfsHash: string;
       try {
         console.log("[tally-upload] Uploading tally to IPFS...");
@@ -63,11 +70,8 @@ export default function PollStatusModal({
         console.error("[tally-upload] IPFS upload failed:", err);
         const serverMessage = err?.response?.data?.error;
         notification.error(serverMessage || "Failed to upload tally to IPFS");
-        setIsUploading(false);
         return;
       }
-
-      setIsUploading(false);
 
       try {
         console.log("[tally-upload] Storing CID on-chain for poll", poll.id.toString());
@@ -78,9 +82,9 @@ export default function PollStatusModal({
         console.error("[tally-upload] On-chain update failed:", err);
         // useScaffoldContractWrite / useTransactor already shows error notifications
       }
-    };
-
-    reader.readAsText(file);
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
