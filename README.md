@@ -228,10 +228,10 @@ yarn hardhat:test --grep "test description"
 
 ```
 packages/
-  hardhat/                    → Smart contracts, deployment scripts, Hardhat tasks
+  hardhat/                    → Smart contracts and deployment configuration
     contracts/                → Local MACI wrapper/overrides; upstream MACI contracts come from node_modules/maci-contracts
     deploy/                   → Deployment scripts
-    tasks/                    → merge, prove (tally flow)
+    hardhat.config.ts         → Loads Hardhat tasks, including merge/prove, via maci-contracts imports
     zkeys/                    → zk-SNARK circuit parameters (downloaded separately)
     contractAddresses.json    → Generated at deploy time, read by frontend
     coordinatorKeyPair.json   → KEEP SECRET — never commit
