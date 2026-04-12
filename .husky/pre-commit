@@ -1,4 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-yarn lint-staged --verbose
+# In a git worktree, node_modules lives in the main worktree, not here.
+# Resolve the main worktree path and run lint-staged from its node_modules directly.
+MAIN_WORKTREE=$(git worktree list --porcelain | awk 'NR==1 {print $2}')
+node "$MAIN_WORKTREE/node_modules/.bin/lint-staged" --verbose

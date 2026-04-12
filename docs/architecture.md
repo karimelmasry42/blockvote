@@ -277,4 +277,4 @@ For public testnet deployment (Sepolia, etc.), the starter repo supports this vi
 
 ---
 
-*Last updated: April 2026*
+*Last updated: April 2026 — added frontend architecture patterns section*
