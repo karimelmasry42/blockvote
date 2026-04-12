@@ -1,89 +1,86 @@
-# 🗳️ BlockVote  
-### Secure Voting System using Blockchain based on MACI (Minimal Anti-Collusion Infrastructure)
+# 🗳️ BlockVote
+### Secure Voting System using Blockchain and MACI (Minimal Anti-Collusion Infrastructure)
 
 ---
 
-## 📘 Project Overview  
+## 📘 Project Overview
 
-**BlockVote** is a hybrid **web and mobile platform** designed to provide **secure, transparent, and tamper-resistant digital voting**.  
-The system leverages **blockchain** for immutable record-keeping and Groth16 k-snarks for voter anonymity and authentication.
+**BlockVote** is a web-based platform designed to provide **secure, transparent, and tamper-resistant digital voting**.
+The system leverages **blockchain** for immutable record-keeping and **Groth16 zk-SNARKs** for voter anonymity and anti-collusion.
 
-Developed as part of the **AASTMT College of Computing and Information Technology – Cybersecurity Graduation Project (2025–2026)**, BlockVote demonstrates how decentralized technologies can ensure **trust**, **integrity**, and **verifiability** in modern digital elections.  
-
----
-
-## 🎯 Objectives  
-
-- Guarantee **data integrity** and prevent vote tampering through blockchain immutability.  
-- Ensure **voter anonymity** and **privacy** using cryptographic techniques.
-- Provide a **user-friendly interface** for both web and mobile platforms.
+Developed as part of the **AASTMT College of Computing and Information Technology – Cybersecurity Graduation Project (2025–2026)**, BlockVote demonstrates how decentralized technologies can ensure **trust**, **integrity**, and **verifiability** in modern digital elections.
 
 ---
 
-## 🧠 Key Features  
+## 🎯 Objectives
 
-✅ Blockchain-based decentralized voting ledger  
-✅ Secure voter identity verification with cryptographic keys  
-✅ Tamper-proof and transparent result auditing  
-✅ Admin dashboard for real-time monitoring  
-
----
-
-## 🧪 Technology Stack  
-
-Frontend (dApp)
-	•	Next.js 14 + React 18 + TypeScript  ￼
-	•	Web3 UI/wallet: RainbowKit + wagmi + viem  ￼
-	•	Styling: Tailwind CSS + daisyUI  ￼
-	•	State/utils: Zustand, Axios, etc.  ￼
-	•	ZK-related libs on frontend: snarkjs, circomlib, circomkit, @zk-kit/circuits  ￼
-
-Smart contracts / backend
-	•	Hardhat (TypeScript-based setup) + Solidity 0.8.20  ￼
-	•	Deploy tooling: hardhat-deploy, hardhat-verify, typechain  ￼
-	•	Ethereum libs: ethers v6 (dev), @ethersproject/* (some deps)  ￼
-	•	Networks/infra: Alchemy RPC endpoints configured (mainnet, sepolia, L2s, etc.)  ￼
-
-Privacy / ZK voting core
-	•	MACI stack: maci-contracts, maci-cli, maci-circuits, maci-crypto, maci-domainobjs, maci-core  ￼
-	•	Includes MACI tasks for merge/prove and a script to download zkeys.
+- Guarantee **data integrity** and prevent vote tampering through blockchain immutability.
+- Ensure **voter anonymity** and **anti-collusion** using zero-knowledge cryptographic proofs.
+- Provide a **user-friendly interface** for web-based voting.
 
 ---
 
-## 🧑‍💻 Team Members  
+## 🧠 Key Features
+
+✅ Blockchain-based decentralized voting ledger
+✅ Private, encrypted vote submission — no one can see how you voted
+✅ Anti-collusion: voters cannot prove their vote to a briber
+✅ Vote changing: voters can update their vote any time before the poll closes
+✅ Multiple voting modes: single-candidate, multi-candidate, weighted
+✅ Admin dashboard for poll management and result publishing
+✅ Tamper-proof, cryptographically verified result auditing via zk-SNARKs
+
+---
+
+## 🧪 Technology Stack
+
+**Frontend (dApp)**
+- Next.js 14 + React 18 + TypeScript
+- Web3 wallet integration: RainbowKit + wagmi + viem
+- Styling: Tailwind CSS + daisyUI
+- ZK-related libs: snarkjs, circomlib, @zk-kit/circuits
+
+**Smart Contracts**
+- Hardhat (TypeScript) + Solidity 0.8.20
+- Deploy tooling: hardhat-deploy, hardhat-verify, typechain
+- Networks: Alchemy RPC endpoints configured (Sepolia, mainnet, L2s)
+
+**Privacy / ZK Voting Core**
+- MACI stack: maci-contracts, maci-cli, maci-circuits, maci-crypto, maci-domainobjs, maci-core
+- Proof system: Groth16 over BN254 curve via snarkjs
+- Circuit parameters: downloaded separately via `yarn download-zkeys`
+
+**File Storage**
+- IPFS via Pinata (tally result files)
+
+---
+
+## 🧑‍💻 Team Members
+
 - [**Karim Elmasry**](https://github.com/karimelmasry42)
 - [**Amer Ashoush**](https://github.com/Mororock6)
 - [**Omar Hamdy**](https://github.com/OmarHamdy24)
 - [**Yousef Kamal**](https://github.com/YxFarghaly)
 - [**Felopater Osama**](https://github.com/Felopater75)
 
-**Supervisor:** Dr. Hesham Dahshan  
-*Arab Academy for Science, Technology and Maritime Transport (AASTMT)*  
+**Supervisor:** Dr. Hesham Dahshan
+*Arab Academy for Science, Technology and Maritime Transport (AASTMT)*
 
 ---
 
-## ⚙️ How to Run (Development Setup)
-## Features
+## ⚙️ Requirements
 
-- **Voter Registration**: Secure registration process through the MACI contract, enabling eligible voting.
-- **Poll Management**: Admins can easily create and manage polls, including question and options setup.
-- **Secure Voting**: Leverage MACI's privacy-preserving technology to ensure votes are cast anonymously and securely.
-- **Results Display**: Transparent display of poll results after the voting phase concludes.
-- **Admin Dashboard**: Comprehensive admin interface for poll oversight, including current status and results analytics.
+Ensure you have the following installed before proceeding:
 
-## Requirements
-
-Ensure you have the following tools installed before you proceed:
-
-- [Node (>= v18.17)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
+- [Node.js (>= v18.17)](https://nodejs.org/en/download/)
+- [Yarn (v1 or v2+)](https://classic.yarnpkg.com/en/docs/install/)
 - [Git](https://git-scm.com/downloads)
 
-## Quickstart
+---
 
-Jumpstart your development with these simple steps:
+## 🚀 Quickstart
 
-1. **Clone and Set Up the Project**
+### 1. Clone and Install
 
 ```bash
 git clone https://github.com/karimelmasry42/blockvote.git
@@ -91,79 +88,141 @@ cd blockvote
 yarn install
 ```
 
-2. **Download the zkeys for the maci circuits**
+### 2. Download zk-SNARK Circuit Parameters
 
-In your first terminal window, run:
+These are large parameter files required for proof generation. Download them once:
 
 ```bash
 yarn download-zkeys
 ```
 
-3. **Update the environment variables**
-
-Copy the env example files to env files
+### 3. Configure Environment Variables
 
 ```bash
 cp packages/hardhat/.env.example packages/hardhat/.env
 cp packages/nextjs/.env.example packages/nextjs/.env.local
 ```
 
-Update the values of the env variables in these new .env files
+Edit `packages/hardhat/.env` and `packages/nextjs/.env.local` with your values.
 
-4. **Start a Local Ethereum Network**
+**Required for result publishing (Pinata/IPFS):**
+1. Create a free account at [pinata.cloud](https://pinata.cloud)
+2. Generate an API key with full permissions
+3. Add the following to `packages/nextjs/.env.local`:
+   ```
+   PINATA_JWT=<your Pinata JWT token>
+   NEXT_PUBLIC_PINATA_GATEWAY=<your Pinata gateway URL>
+   ```
 
-In your first terminal window, run:
+### 4. Start a Local Blockchain
+
+In terminal 1:
 
 ```bash
 yarn chain
 ```
 
-This initiates a local Ethereum network via Hardhat for development and testing purposes. Adjust the network settings in `hardhat.config.ts` as needed.
+This starts a local Ethereum network via Hardhat. The first account printed is the **admin account** — import its private key into MetaMask to access admin features.
 
-5. **Deploy Contracts**
+### 5. Deploy Contracts
 
-In a second terminal, deploy your test contract with:
+In terminal 2:
 
 ```bash
 yarn deploy
 ```
 
-Find the contract in `packages/hardhat/contracts`. This script deploys your contract to the local network, with customization available in `packages/hardhat/deploy`.
+Contract addresses are saved to `packages/hardhat/contractAddresses.json`.
+The coordinator keypair is saved to `packages/hardhat/coordinatorKeyPair.json`.
 
-6. **Launch the NextJS Application**
+> ⚠️ **Security**: `coordinatorKeyPair.json` contains the private key used to decrypt all votes. Never commit this file to git and never share it.
 
-In a third terminal, start the NextJS frontend:
+### 6. Launch the Frontend
+
+In terminal 3:
 
 ```bash
 yarn start
 ```
 
-7. **Compute Results**
+Navigate to [http://localhost:3000](http://localhost:3000).
 
-- Update `packages/hardhat/deploy-config.json` file, select the network, and in the `Poll` object, update `coordinatorPubkey` to the coordinator public key in the `packages/hardhat/coordinatorKeyPair.json`, and update `useQuadraticVoting` if you want to compute results for a non quadratic vote.
-- Merge the poll, using `yarn hardhat merge --poll {poll id}`
-- Generate proof, using `yarn hardhat prove --poll {poll id} --output-dir {proof ouput dir} --coordinator-private-key {coordinator private key} --tally-file {tally output file}`
+---
 
-Navigate to `http://localhost:3000` to interact with your dApp. Modify your app configuration in `packages/nextjs/scaffold.config.ts` and `packages/hardhat/constants.ts` as necessary.
+## 📊 Computing Results
 
-The deployed contracts will be saved to the file `packages/hardhat/contractAddresses.json`, this file is compatible with maci cli.
+After a poll closes, results must be generated and published in three steps.
 
-The coordinator keys will be stored in the file `packages/hardhat/coordinatorKeyPair.json`.
+### Step 1 — Merge
 
-## Usage
+```bash
+yarn hardhat merge --poll <POLL_ID>
+```
 
-After setting up the project, you can:
+Replace `<POLL_ID>` with the numeric ID of the poll (visible in the admin dashboard).
 
-- **Register**: Use the app's interface to register with the MACI contract and gain voting rights.
-- **Create Polls**: As an admin, you can create polls with custom questions and options.
-- **Vote**: Registered voters can participate in polls, utilizing MACI's secure voting mechanism.
-- **View Results**: Access poll outcomes after the voting phase ends.
-- **Admin Dashboard**: Monitor and manage ongoing polls, including viewing detailed poll status.
+### Step 2 — Generate Proof
 
-## Contributing
+Before running this step, open `packages/hardhat/deploy-config.json` and confirm:
+- `coordinatorPubkey` matches the public key in `packages/hardhat/coordinatorKeyPair.json`
+- `useQuadraticVoting` is set to `false` (quadratic voting is not supported in this version)
 
-Your contributions are welcome! Feel free to report issues, submit fixes, or suggest new features to enhance the project.
+Then run:
 
-## License
+```bash
+yarn hardhat prove \
+  --poll <POLL_ID> \
+  --output-dir . \
+  --coordinator-private-key <COORDINATOR_PRIVATE_KEY> \
+  --tally-file tally-poll-<POLL_ID>.json
+```
+
+- `<COORDINATOR_PRIVATE_KEY>` — the `privKey` field from `packages/hardhat/coordinatorKeyPair.json`
+- `--tally-file` — name of the output file (use `tally-poll-<POLL_ID>.json` as convention)
+
+This produces a `tally-poll-<POLL_ID>.json` file containing the vote counts and their zk-SNARK proof.
+
+### Step 3 — Publish Results
+
+1. Open the admin dashboard at [http://localhost:3000](http://localhost:3000)
+2. Navigate to the closed poll
+3. Upload the `tally-poll-<POLL_ID>.json` file
+4. The file is stored on IPFS via Pinata and the result is published on-chain
+
+Results are now publicly visible to all voters.
+
+---
+
+## 🗳️ Usage
+
+After setup, you can:
+
+- **Register** — connect a wallet and register to gain voting rights
+- **Create Polls** — admin can create polls with candidates, voting type, and start/end times
+- **Vote** — registered voters can cast votes in active polls; votes may be changed before the poll closes
+- **Admin Dashboard** — manage polls, view status, pause or close polls early, upload tally results
+- **View Results** — after the tally is published, results are visible to all with a cryptographic proof of correctness
+
+---
+
+## 📁 Project Structure
+
+```
+packages/
+  hardhat/          → Smart contracts, deployment scripts, Hardhat tasks
+  nextjs/           → Next.js frontend application
+```
+
+For detailed architecture and cryptographic documentation, see the `docs/` folder.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome. Please open an issue or submit a pull request.
+
+---
+
+## 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
