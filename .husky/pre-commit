@@ -2,16 +2,6 @@
 . "$(dirname "$0")/_/husky.sh"
 
 # In a git worktree, node_modules lives in the main worktree, not here.
-# Use sed to strip the "worktree " prefix — handles paths with spaces.
-MAIN_WORKTREE=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
-
-if [ -z "$MAIN_WORKTREE" ]; then
-  echo "husky: could not determine main worktree path" >&2
-  exit 1
-fi
-
-# Export so .lintstagedrc.js can direct yarn subcommands to the right location.
-export MAIN_WORKTREE
-
-# Execute the lint-staged shim directly so its shebang is honored.
-"$MAIN_WORKTREE/node_modules/.bin/lint-staged" --verbose
+# Resolve the main worktree path and run lint-staged from its node_modules directly.
+MAIN_WORKTREE=$(git worktree list --porcelain | awk 'NR==1 {print $2}')
+node "$MAIN_WORKTREE/node_modules/.bin/lint-staged" --verbose
