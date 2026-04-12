@@ -2,6 +2,7 @@
 .next
 node_modules/
 # files
+next-env.d.ts
 **/*.less
 **/*.css
 **/*.scss
