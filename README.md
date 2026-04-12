@@ -35,7 +35,7 @@ Developed as part of the **AASTMT College of Computing and Information Technolog
 ## 🧪 Technology Stack
 
 **Frontend (dApp)**
-- Next.js 14 + React 18 + TypeScript
+- Next.js 15 + React 18 + TypeScript
 - Web3 wallet integration: RainbowKit + wagmi + viem
 - Styling: Tailwind CSS + daisyUI
 - ZK-related libs: snarkjs, circomlib, @zk-kit/circuits
@@ -205,12 +205,43 @@ After setup, you can:
 
 ---
 
+## 🧪 Development Commands
+
+```bash
+# Run Hardhat tests (with gas reporting)
+yarn test
+
+# Lint
+yarn next:lint        # Frontend ESLint
+yarn hardhat:lint     # Contracts ESLint
+
+# Format (Prettier)
+yarn format           # Both packages
+
+# Run a single test by name
+yarn hardhat:test --grep "test description"
+```
+
+---
+
 ## 📁 Project Structure
 
 ```
 packages/
-  hardhat/          → Smart contracts, deployment scripts, Hardhat tasks
-  nextjs/           → Next.js frontend application
+  hardhat/                    → Smart contracts and deployment configuration
+    contracts/                → Local MACI wrapper/overrides; upstream MACI contracts come from node_modules/maci-contracts
+    deploy/                   → Deployment scripts
+    hardhat.config.ts         → Loads Hardhat tasks, including merge/prove, via maci-contracts imports
+    zkeys/                    → zk-SNARK circuit parameters (downloaded separately)
+    contractAddresses.json    → Generated at deploy time, read by frontend
+    coordinatorKeyPair.json   → KEEP SECRET — never commit
+  nextjs/                     → Next.js frontend
+    app/                      → App Router pages (polls, vote, admin, results)
+    components/               → Reusable UI components (DaisyUI + Tailwind)
+    hooks/                    → wagmi/scaffold-eth contract interaction hooks
+    contexts/AuthContext.tsx  → MACI keypair, stateIndex, registration state
+    services/                 → Web3 utilities and state management
+    types/poll.ts             → Poll type definitions
 ```
 
 For detailed architecture and cryptographic documentation, see the `docs/` folder.

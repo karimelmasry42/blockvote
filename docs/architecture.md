@@ -49,6 +49,24 @@ The frontend interacts with the blockchain via **wagmi** and **viem** hooks (inj
 
 Environment config: `packages/nextjs/.env.example`
 
+#### Frontend Architecture Patterns
+
+**State management**:
+- `contexts/AuthContext.tsx` — primary auth state. Holds the MACI keypair, stateIndex, and `isRegistered` flag. Always check this before assuming a user is registered.
+- Zustand is available for local UI state (e.g. modal open/close).
+
+**Web3 hook conventions** (Scaffold-ETH 2):
+- Contract reads: `useScaffoldContractRead` from `hooks/scaffold-eth/`
+- Contract writes: `useScaffoldContractWrite` from `hooks/scaffold-eth/`
+- Do not call wagmi hooks directly for contract interactions — use the scaffold-eth wrappers.
+
+**Poll data**:
+- `useFetchPolls` / `useFetchPoll` — fetch and normalise poll data from the chain. Poll metadata is stored on-chain in `MACIWrapper.PollData.metadata` as a JSON string, which the frontend parses directly. IPFS via Pinata is used for referenced assets such as candidate images and tally files, not for storing only a poll-metadata CID on-chain.
+
+**UI library**: Tailwind CSS + DaisyUI component library. Use DaisyUI class names before writing custom CSS.
+
+**Poll types are frontend-only**: The contract has no concept of "single candidate", "multi-candidate", or "weighted". The frontend reads `pollType` from the on-chain `metadata` JSON string and uses it for UI behaviour only; it is not enforced on-chain. A user can bypass UI restrictions by calling the contract directly — this is a known security gap.
+
 ---
 
 ### 2. Smart Contracts — Solidity (`packages/hardhat/`)
