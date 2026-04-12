@@ -171,7 +171,7 @@ Confirmed changes (from Jira BLOCK project):
 - Language: **TypeScript** on frontend, **Solidity** on contracts
 - Package manager: **yarn** (workspaces). Do not use npm or pnpm.
 - Contract interaction hooks:
-  - Prefer the Scaffold-ETH 2 wrappers (`useScaffoldReadContract`, `useScaffoldWriteContract`) for **named deployed contracts** configured through Scaffold-ETH (e.g. `MACIWrapper`).
+  - Prefer the Scaffold-ETH 2 wrappers (`useScaffoldContractRead`, `useScaffoldContractWrite`) for **named deployed contracts** configured through Scaffold-ETH (e.g. `MACIWrapper`).
   - Direct wagmi hooks (`useContractRead`, `useContractWrite`) may be used when the contract address is only known dynamically at runtime (e.g. per-poll `Poll` contracts) or in debug pages that intentionally expose lower-level contract interactions.
 - Code style is enforced automatically before each git commit (ESLint + Prettier via lint-staged).
 - Worktree branches must follow the Jira naming convention: `BLOCK-XX` (where XX is the Jira issue number).
