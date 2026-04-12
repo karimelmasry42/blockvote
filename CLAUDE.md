@@ -172,6 +172,7 @@ Confirmed changes (from Jira BLOCK project):
 - Package manager: **yarn** (workspaces). Do not use npm or pnpm.
 - React hooks follow Scaffold-ETH 2 conventions. Contract reads: `useScaffoldReadContract`. Contract writes: `useScaffoldWriteContract`.
 - Code style is enforced automatically before each git commit (ESLint + Prettier via lint-staged).
+- Worktree branches must follow the Jira naming convention: `BLOCK-XX` (where XX is the Jira issue number).
 
 ---
 
