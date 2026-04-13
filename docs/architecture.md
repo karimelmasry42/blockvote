@@ -199,24 +199,31 @@ The verification keys for these circuits are stored in the `VkRegistry` contract
 
 #### Proof Generation Flow (Off-Chain)
 
-After a poll closes, the admin/coordinator runs these commands:
+After a poll closes, the admin/coordinator runs these commands from `packages/hardhat/`:
 
 ```bash
+cd packages/hardhat
+
 # Step 1: Merge the signup and message trees
 yarn hardhat merge --poll <POLL_ID>
 
 # Step 2: Generate the zk-SNARK proof and tally file
+mkdir -p tally-output
 yarn hardhat prove \
   --poll <POLL_ID> \
-  --output-dir . \
+  --output-dir tally-output \
   --coordinator-private-key <COORDINATOR_PRIVATE_KEY> \
-  --tally-file tally-poll-<POLL_ID>.json
+  --tally-file tally-output/tally-poll-<POLL_ID>.json
 
-# Step 3: Upload tally-poll-<POLL_ID>.json via the Admin UI
+# Step 3: Upload tally-output/tally-poll-<POLL_ID>.json via the Admin UI
 # This triggers on-chain verification and publishes results
 ```
 
-> ⚠️ **Known Issue**: The proof generation flow currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. This is a **critical bug** that must be resolved before the project can be considered functional. The Pinata upload step (Step 3) has been fixed — uploads now go through a server-side API route with proper error handling and loading states.
+Output files go in `tally-output/` (gitignored) to prevent accidental commits.
+
+> **Local Hardhat chain timing**: The merge step checks the immutable `deployTime + duration` from `Poll.sol`, NOT the `endTime` in `MACIWrapper`. If the admin closes a poll early via the UI, MACI's merge task still waits for the original on-chain duration to elapse. On a local Hardhat node, block timestamps only advance when blocks are mined — use `yarn hardhat run scripts/advance-time.ts --network localhost` to force the clock forward.
+
+> ⚠️ **Known Issue**: The proof generation step (Step 2) currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. This is a **critical bug** that must be resolved before the project can be considered functional. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
 
 #### The Pinata/IPFS Role
 Pinata is used in two places:
