@@ -6,7 +6,8 @@ const RATE_LIMIT_MAX_REQUESTS = 10;
 const requestCounts = new Map<string, { count: number; resetAt: number }>();
 
 function isRateLimited(request: NextRequest): boolean {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || request.headers.get("x-real-ip") || "unknown";
   const now = Date.now();
   const existing = requestCounts.get(ip);
 
