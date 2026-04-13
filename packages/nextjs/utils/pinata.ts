@@ -1,23 +1,15 @@
 import axios from "axios";
 
-export async function uploadToPinata(jsonData: any) {
-  const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
-  const pinataJWT = process.env.NEXT_PUBLIC_PINATA_JWT || "";
+export async function uploadToPinata(jsonData: unknown): Promise<string> {
+  const { data } = await axios.post("/api/pinata/upload", jsonData, {
+    timeout: 60_000,
+  });
 
-  const { data } = await axios.post(
-    url,
-    {
-      // assuming client sends `nftMeta` json
-      pinataContent: jsonData,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${pinataJWT}`,
-      },
-    },
-  );
+  if (!data.ipfsHash) {
+    throw new Error("Upload succeeded but no IPFS hash was returned");
+  }
 
-  return data.IpfsHash;
+  return data.ipfsHash;
 }
 
 export async function getDataFromPinata(hash: string) {

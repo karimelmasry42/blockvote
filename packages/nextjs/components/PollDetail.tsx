@@ -129,7 +129,7 @@ export default function PollDetail({ id }: { id: bigint }) {
       const { pollType } = JSON.parse(poll.metadata);
       setPollType(pollType);
     } catch (err) {
-      console.log("err", err);
+      console.error("[poll-detail] Failed to parse poll metadata:", err);
     }
 
     if (poll.tallyJsonCID) {
@@ -162,7 +162,8 @@ export default function PollDetail({ id }: { id: bigint }) {
           resultRows.sort((a, b) => b.votes - a.votes);
           setResult(resultRows);
         } catch (err) {
-          console.log("err", err);
+          console.error("[poll-detail] Failed to fetch tally from IPFS:", err);
+          notification.error("Failed to load poll results from IPFS");
         }
       })();
     }

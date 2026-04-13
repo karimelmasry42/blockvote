@@ -77,15 +77,21 @@ Copy from `.env.example`. Key variables:
 ### `packages/nextjs/.env.local`
 Copy from `.env.example`. Key variables:
 - `NEXT_PUBLIC_PINATA_GATEWAY` — Pinata gateway URL (for reading files stored on IPFS)
-- `PINATA_JWT` — Pinata API JWT token (for uploading tally files to IPFS)
+- `PINATA_JWT` — Pinata API JWT token (server-side only, used by `/api/pinata/upload` route for uploading tally files to IPFS). Do NOT prefix with `NEXT_PUBLIC_`.
 
 ---
 
-## The zk-SNARK Tally Flow (Critical — Currently Broken)
+## The zk-SNARK Tally Flow
 
-After a poll closes, results are generated in three steps:
+After a poll closes, results are generated in three steps. **All Hardhat commands must be run from `packages/hardhat/`.**
+
+> ⚠️ **Local Hardhat chain note**: Block timestamps only advance when blocks are mined, not in real time. If the merge step fails with "Voting period is not over" even though the poll appears closed in the UI, run `yarn hardhat run scripts/advance-time.ts --network localhost` to advance the chain clock by 1 hour.
+>
+> **Why this happens**: The admin's "Close Poll" button updates `MACIWrapper.endTime` (the UI state), but MACI's merge task checks the immutable `deployTime + duration` from the underlying `Poll.sol` contract. These are independent — closing a poll early in the UI does not change the on-chain poll duration.
 
 ```bash
+cd packages/hardhat
+
 # Step 1: Merge signup and message trees
 yarn hardhat merge --poll <POLL_ID>
 
@@ -93,14 +99,16 @@ yarn hardhat merge --poll <POLL_ID>
 # Update deploy-config.json first: set coordinatorPubkey and useQuadraticVoting
 yarn hardhat prove \
   --poll <POLL_ID> \
-  --output-dir . \
+  --output-dir tally-output \
   --coordinator-private-key <KEY_FROM_coordinatorKeyPair.json> \
-  --tally-file tally-poll-<POLL_ID>.json
+  --tally-file tally-output/tally-poll-<POLL_ID>.json
 
-# Step 3: Upload tally-poll-<POLL_ID>.json via Admin UI → Results appear
+# Step 3: Upload tally-output/tally-poll-<POLL_ID>.json via Admin UI → Results appear
 ```
 
-> ⚠️ **KNOWN CRITICAL BUG**: Step 2 currently fails with an "invalid file" error. Root cause unknown — likely related to zkey file paths, output directory config, or circuit parameter mismatch. **Fixing this is the highest priority technical task.** Do not mark done until the full flow (merge → prove → upload → results visible) works end-to-end.
+Output files go in `tally-output/` which is gitignored. Do not use `--output-dir .` as that places files in `packages/hardhat/` where they could be committed accidentally.
+
+> ⚠️ **KNOWN BUG**: Step 2 currently fails with an "invalid file" error. Root cause unknown — likely related to zkey file paths, output directory config, or circuit parameter mismatch. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
 
 ---
 
@@ -192,7 +200,7 @@ Confirmed changes (from Jira BLOCK project):
 | Issue | Severity |
 |---|---|
 | zk-SNARK proof generation fails (`yarn hardhat prove`) | 🔴 Critical |
-| Full tally flow (merge → prove → upload → results) not validated end-to-end | 🔴 Critical |
+| Full tally flow (merge → prove → upload → results) not validated end-to-end (upload step fixed — see `/api/pinata/upload` route) | 🟡 Medium |
 | Poll type restrictions only enforced in UI — contract callable directly, bypassing rules | 🔴 Security gap |
 | Admin = Coordinator (same account/key) — no separation of trust | 🟡 Medium |
 | Voice credit limit (100) not configurable per poll | 🟡 Medium |

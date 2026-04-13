@@ -6,6 +6,15 @@ import { Poll } from "~~/types/poll";
 import { uploadToPinata } from "~~/utils/pinata";
 import { notification } from "~~/utils/scaffold-eth";
 
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  });
+}
+
 export default function PollStatusModal({
   poll,
   show,
@@ -16,46 +25,66 @@ export default function PollStatusModal({
   poll: Poll | undefined;
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
 
-  const { writeAsync } = useScaffoldContractWrite({
+  const { writeAsync, isMining } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "updatePollTallyCID",
     args: [undefined, undefined],
   });
 
-  function uploadTallyFile() {
-    if (!fileInputRef.current?.files?.length || !poll) {
+  const isProcessing = isUploading || isMining;
+
+  async function uploadTallyFile() {
+    if (!fileInputRef.current?.files?.length || !poll || isProcessing) {
       return;
     }
 
-    const file = fileInputRef.current.files[0];
-    console.log(file);
-    const reader = new FileReader();
+    setIsUploading(true);
 
-    reader.onload = async () => {
-      const content = reader.result as string;
+    try {
+      const file = fileInputRef.current.files[0];
+      const content = await readFileAsText(file);
 
       let data: any;
       try {
         data = JSON.parse(content);
       } catch (err) {
-        notification.error("Invalid file", { showCloseButton: false });
+        console.error("[tally-upload] Failed to parse JSON file:", err);
+        notification.error("Invalid file: not valid JSON");
         return;
       }
 
       if (!data || !data.results?.tally || !Array.isArray(data.results.tally)) {
-        notification.error("Invalid file", { showCloseButton: false });
+        console.error("[tally-upload] File missing results.tally array");
+        notification.error("Invalid file: missing results.tally array");
         return;
       }
 
-      const ipfsHash = await uploadToPinata(data);
+      let ipfsHash: string;
+      try {
+        console.log("[tally-upload] Uploading tally to IPFS...");
+        ipfsHash = await uploadToPinata(data);
+        console.log("[tally-upload] Uploaded to IPFS:", ipfsHash);
+      } catch (err: any) {
+        console.error("[tally-upload] IPFS upload failed:", err);
+        const serverMessage = err?.response?.data?.error;
+        notification.error(serverMessage || "Failed to upload tally to IPFS");
+        return;
+      }
 
-      await writeAsync({ args: [poll.id, ipfsHash] });
-
-      setOpen(false);
-    };
-
-    reader.readAsText(file);
+      try {
+        console.log("[tally-upload] Storing CID on-chain for poll", poll.id.toString());
+        await writeAsync({ args: [poll.id, ipfsHash] });
+        console.log("[tally-upload] On-chain CID update confirmed");
+        setOpen(false);
+      } catch (err) {
+        console.error("[tally-upload] On-chain update failed:", err);
+        // useScaffoldContractWrite / useTransactor already shows error notifications
+      }
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
@@ -73,22 +102,25 @@ export default function PollStatusModal({
               type="file"
               ref={fileInputRef}
               accept=".json"
-              className="file-input file-input-bordered w-full bg-primary text-neutral max-w-xs"
+              disabled={isProcessing}
+              className="file-input file-input-bordered w-full bg-primary text-neutral max-w-xs disabled:opacity-50"
             />
           </div>
         </div>
         <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
           <button
             type="button"
-            className="inline-flex w-full justify-center rounded-md bg-primary text-primary-content px-3 py-2 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2"
+            className="inline-flex w-full justify-center rounded-md bg-primary text-primary-content px-3 py-2 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={uploadTallyFile}
+            disabled={isProcessing}
           >
-            Upload
+            {isUploading ? "Uploading to IPFS..." : isMining ? "Confirming transaction..." : "Upload"}
           </button>
           <button
             type="button"
-            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
+            className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => setOpen(false)}
+            disabled={isProcessing}
           >
             Cancel
           </button>

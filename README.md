@@ -153,6 +153,12 @@ Navigate to [http://localhost:3000](http://localhost:3000).
 
 After a poll closes, results must be generated and published in three steps.
 
+**All Hardhat commands below must be run from `packages/hardhat/`:**
+
+```bash
+cd packages/hardhat
+```
+
 ### Step 1 — Merge
 
 ```bash
@@ -160,6 +166,8 @@ yarn hardhat merge --poll <POLL_ID>
 ```
 
 Replace `<POLL_ID>` with the numeric ID of the poll (visible in the admin dashboard).
+
+> **Local Hardhat chain**: If this fails with "Voting period is not over" even though the poll is closed in the UI, run `yarn hardhat run scripts/advance-time.ts --network localhost` to advance the chain clock. This is needed because Hardhat's block timestamps only advance when blocks are mined, and the admin "Close Poll" button only updates the UI state — not MACI's immutable on-chain poll duration.
 
 ### Step 2 — Generate Proof
 
@@ -170,24 +178,27 @@ Before running this step, open `packages/hardhat/deploy-config.json` and confirm
 Then run:
 
 ```bash
+mkdir -p tally-output
 yarn hardhat prove \
   --poll <POLL_ID> \
-  --output-dir . \
+  --output-dir tally-output \
   --coordinator-private-key <COORDINATOR_PRIVATE_KEY> \
-  --tally-file tally-poll-<POLL_ID>.json
+  --tally-file tally-output/tally-poll-<POLL_ID>.json
 ```
 
 - `<COORDINATOR_PRIVATE_KEY>` — the `privKey` field from `packages/hardhat/coordinatorKeyPair.json`
-- `--tally-file` — name of the output file (use `tally-poll-<POLL_ID>.json` as convention)
+- `--output-dir` — use `tally-output` (gitignored). Do not use `.` as that places files in `packages/hardhat/` where they could be committed accidentally.
+- `--tally-file` — output path (use `tally-output/tally-poll-<POLL_ID>.json` as convention)
 
-This produces a `tally-poll-<POLL_ID>.json` file containing the vote counts and their zk-SNARK proof.
+This produces a tally JSON file containing the vote counts and their zk-SNARK proof.
 
 ### Step 3 — Publish Results
 
 1. Open the admin dashboard at [http://localhost:3000](http://localhost:3000)
-2. Navigate to the closed poll
-3. Upload the `tally-poll-<POLL_ID>.json` file
-4. The file is stored on IPFS via Pinata and the result is published on-chain
+2. Navigate to the closed poll and click "Required Actions"
+3. Upload the `tally-output/tally-poll-<POLL_ID>.json` file
+4. The file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`) and the IPFS hash is published on-chain
+5. The button will show "Uploading to IPFS..." then "Confirming transaction..." during processing
 
 Results are now publicly visible to all voters.
 
