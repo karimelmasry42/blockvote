@@ -406,31 +406,54 @@ export default function PollDetail({ id }: { id: bigint }) {
         {voted ? (
           <div>
             <p className="font-bold">Voted:</p>
-            <ul>
-              {votes.map(vote => {
-                const candidate = candidateOptions[vote.index];
 
-                return (
-                  <li key={vote.index} className="bg-primary flex w-full px-3 py-3 rounded-lg mb-2 items-center gap-3">
-                    <Image
-                      src={candidate?.image || DEFAULT_CANDIDATE_IMAGE}
-                      alt={(candidate?.name || poll?.options?.[vote.index] || "Candidate") as string}
-                      width={48}
-                      height={48}
-                      className="rounded-full object-cover border border-slate-400 shrink-0"
-                      unoptimized
-                    />
-                    <div className="flex-1">
-                      <div className="font-semibold">{candidate?.name || poll?.options[vote.index]}</div>
-                      {candidate?.description ? (
-                        <div className="text-sm opacity-80 mt-1 whitespace-pre-wrap">{candidate.description}</div>
-                      ) : null}
-                    </div>
-                    <div className="font-semibold">{vote.votes} votes</div>
-                  </li>
-                );
-              })}
-            </ul>
+            {pollType === PollType.SINGLE_VOTE && votes.length > 0 ? (
+              <div className="bg-primary w-full px-6 py-6 rounded-xl mb-2 flex flex-col items-center text-center gap-3">
+                <img
+                  src={candidateOptions[votes[0].index]?.image || DEFAULT_CANDIDATE_IMAGE}
+                  alt={candidateOptions[votes[0].index]?.name || poll?.options[votes[0].index]}
+                  className="w-20 h-20 rounded-full object-cover border border-slate-400"
+                />
+
+                <div className="text-sm opacity-80">You voted for</div>
+
+                <div className="text-2xl font-bold">
+                  {candidateOptions[votes[0].index]?.name || poll?.options[votes[0].index]}
+                </div>
+
+                {candidateOptions[votes[0].index]?.description ? (
+                  <div className="text-sm opacity-80 max-w-md whitespace-pre-wrap">
+                    {candidateOptions[votes[0].index]?.description}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <ul>
+                {votes.map(vote => {
+                  const candidate = candidateOptions[vote.index];
+
+                  return (
+                    <li
+                      key={vote.index}
+                      className="bg-primary flex w-full px-3 py-3 rounded-lg mb-2 items-center gap-3"
+                    >
+                      <img
+                        src={candidate?.image || DEFAULT_CANDIDATE_IMAGE}
+                        alt={candidate?.name || poll?.options[vote.index]}
+                        className="w-12 h-12 rounded-full object-cover border border-slate-400 shrink-0"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold">{candidate?.name || poll?.options[vote.index]}</div>
+                        {candidate?.description ? (
+                          <div className="text-sm opacity-80 mt-1 whitespace-pre-wrap">{candidate.description}</div>
+                        ) : null}
+                      </div>
+                      <div className="font-semibold">{vote.votes} votes</div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
 
             {status === PollStatus.OPEN && (
               <div className="mt-2 shadow-2xl">
