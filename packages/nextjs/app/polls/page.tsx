@@ -15,8 +15,6 @@ export default function Polls() {
   const totalPages = useTotalPages(totalPolls, limit);
   useAuthUserOnly({});
 
-  console.log(polls);
-
   const router = useRouter();
 
   return (

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+const CopyToClipboardComponent = CopyToClipboard as any;
 import { Address as AddressType, getAddress, isAddress } from "viem";
 import { hardhat } from "viem/chains";
 import { useEnsAvatar, useEnsName } from "wagmi";
@@ -116,7 +117,7 @@ export const Address = ({ address, disableAddressLink, format, size = "base" }: 
           aria-hidden="true"
         />
       ) : (
-        <CopyToClipboard
+        <CopyToClipboardComponent
           text={checkSumAddress}
           onCopy={() => {
             setAddressCopied(true);
@@ -129,7 +130,7 @@ export const Address = ({ address, disableAddressLink, format, size = "base" }: 
             className="ml-1.5 text-xl font-normal text-sky-600 h-5 w-5 cursor-pointer"
             aria-hidden="true"
           />
-        </CopyToClipboard>
+        </CopyToClipboardComponent>
       )}
     </div>
   );

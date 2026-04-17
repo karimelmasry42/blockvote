@@ -39,6 +39,7 @@ const Home: NextPage = () => {
               ) : (
                 <Link
                   href="/polls"
+                  prefetch={false}
                   className="border border-slate-600 bg-primary px-5 py-3 rounded-lg font-bold hover:bg-secondary hover:shadow-md transition"
                 >
                   Explore Polls

@@ -179,19 +179,19 @@ export default function PollDetail({ id }: { id: bigint }) {
 
   const { data: coordinatorPubKeyResult } = useContractRead({
     abi: PollAbi,
-    address: poll?.pollContracts.poll,
+    address: poll?.pollContracts.poll as `0x${string}`,
     functionName: "coordinatorPubKey",
   });
 
   const { writeAsync: publishMessage } = useContractWrite({
     abi: PollAbi,
-    address: poll?.pollContracts.poll,
+    address: poll?.pollContracts.poll as `0x${string}`,
     functionName: "publishMessage",
   });
 
   const { writeAsync: publishMessageBatch } = useContractWrite({
     abi: PollAbi,
-    address: poll?.pollContracts.poll,
+    address: poll?.pollContracts.poll as `0x${string}`,
     functionName: "publishMessageBatch",
   });
 
