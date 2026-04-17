@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
 import PollStatusModal from "./_components/PollStatusModal";
 import { useAccount } from "wagmi";
@@ -15,30 +15,59 @@ import { Poll, PollStatus } from "~~/types/poll";
 import { notification } from "~~/utils/scaffold-eth";
 
 export default function AdminPage() {
-  const { address } = useAccount();
+  const router = useRouter();
+  const { address, isConnected } = useAccount();
+
   const [openCreatePollModal, setOpenCreatePollModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const { data: admin } = useScaffoldContractRead({ contractName: "MACIWrapper", functionName: "owner" });
   const [limit] = useState(10);
+  const [selectedPollForStatusModal, setSelectedPollForStatusModal] = useState<Poll>();
+
+  const { data: admin } = useScaffoldContractRead({
+    contractName: "MACIWrapper",
+    functionName: "owner",
+  });
+
   const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
   const totalPages = useTotalPages(totalPolls, limit);
-  const [selectedPollForStatusModal, setSelectedPollForStatusModal] = useState<Poll>();
 
   const { writeAsync: pausePoll, isMining: isPausing } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "pausePoll" as const,
     args: [0n],
   });
+
   const { writeAsync: resumePoll, isMining: isResuming } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "resumePoll" as const,
     args: [0n],
   });
+
   const { writeAsync: closePoll, isMining: isClosing } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "closePoll" as const,
     args: [0n],
   });
+
+  const ownerLoaded = admin !== undefined;
+
+  const isOwner = useMemo(() => {
+    if (!address || !admin) return false;
+    return address.toLowerCase() === String(admin).toLowerCase();
+  }, [address, admin]);
+
+  useEffect(() => {
+    if (!ownerLoaded) return;
+
+    if (!isConnected || !address) {
+      router.replace("/");
+      return;
+    }
+
+    if (!isOwner) {
+      router.replace("/");
+    }
+  }, [ownerLoaded, isConnected, address, isOwner, router]);
 
   const handlePausePoll = async (pollId: bigint) => {
     try {
@@ -75,12 +104,13 @@ export default function AdminPage() {
     }
   };
 
-  useEffect(() => {
-    if (!admin || !address) return;
-    if (address !== admin) {
-      redirect("/");
-    }
-  }, [address, admin]);
+  if (!ownerLoaded) {
+    return <div className="container mx-auto pt-10">Loading...</div>;
+  }
+
+  if (!isConnected || !address || !isOwner) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto pt-10">
@@ -137,7 +167,7 @@ export default function AdminPage() {
                     {poll.status == PollStatus.CLOSED ? (
                       <>
                         {poll.status}{" "}
-                        <button className=" text-accent underline" onClick={() => setSelectedPollForStatusModal(poll)}>
+                        <button className="text-accent underline" onClick={() => setSelectedPollForStatusModal(poll)}>
                           (Required Actions)
                         </button>
                       </>
@@ -187,6 +217,7 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+
           {totalPages > 1 && (
             <Paginator currentPage={currentPage} totalPages={totalPages} setPageNumber={setCurrentPage} />
           )}
