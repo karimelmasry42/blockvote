@@ -190,7 +190,7 @@ yarn hardhat prove \
 - `--output-dir` — use `tally-output` (gitignored). Do not use `.` as that places files in `packages/hardhat/` where they could be committed accidentally.
 - `--tally-file` — output path (use `tally-output/tally-poll-<POLL_ID>.json` as convention)
 
-This produces a tally JSON file containing the vote counts and their zk-SNARK proof.
+This produces a tally JSON file containing the vote counts and their zk-SNARK proof. The tally folder provided in `--output-dir` will be in `packages/hardhat`
 
 ### Step 3 — Publish Results
 
