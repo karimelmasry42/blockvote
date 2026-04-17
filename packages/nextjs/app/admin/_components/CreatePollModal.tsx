@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { useMemo, useState } from "react";
 import { Dialog } from "@headlessui/react";
 import { LuCross } from "react-icons/lu";
 import { MdEdit } from "react-icons/md";
@@ -7,6 +9,16 @@ import Modal from "~~/components/Modal";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { CandidateOption, EMode, PollType } from "~~/types/poll";
 import { notification } from "~~/utils/scaffold-eth";
+
+const formatDateTimeLocal = (date: Date) => {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 export default function Example({
   show,
@@ -22,8 +34,8 @@ export default function Example({
 
   const [pollData, setPollData] = useState({
     title: "Dummy Title",
-    startDate: now,
-    expiry: defaultExpiry,
+    startDate: formatDateTimeLocal(now),
+    expiry: formatDateTimeLocal(defaultExpiry),
     pollType: PollType.NOT_SELECTED,
     mode: EMode.QV,
     options: [{ name: "", image: "", description: "" }] as CandidateOption[],
@@ -47,10 +59,16 @@ export default function Example({
     }));
   };
 
-  const handleOptionChange = (index: number, field: keyof CandidateOption, value: string) => {
+  const handleOptionChange = (
+    index: number,
+    field: keyof CandidateOption,
+    value: string,
+  ) => {
     setPollData(prev => ({
       ...prev,
-      options: prev.options.map((option, i) => (i === index ? { ...option, [field]: value } : option)),
+      options: prev.options.map((option, i) =>
+        i === index ? { ...option, [field]: value } : option,
+      ),
     }));
   };
 
@@ -80,10 +98,30 @@ export default function Example({
     }));
   }
 
-  const startTimestamp = Math.round(pollData.startDate.getTime() / 1000);
-  const duration = Math.round((pollData.expiry.getTime() - pollData.startDate.getTime()) / 1000);
+  const startDateObj = useMemo(
+    () => (pollData.startDate ? new Date(pollData.startDate) : null),
+    [pollData.startDate],
+  );
+
+  const expiryDateObj = useMemo(
+    () => (pollData.expiry ? new Date(pollData.expiry) : null),
+    [pollData.expiry],
+  );
+
+  const isStartDateValid = !!startDateObj && !Number.isNaN(startDateObj.getTime());
+  const isExpiryDateValid = !!expiryDateObj && !Number.isNaN(expiryDateObj.getTime());
+
+  const startTimestamp = isStartDateValid
+    ? Math.round(startDateObj.getTime() / 1000)
+    : null;
+
+  const duration =
+    isStartDateValid && isExpiryDateValid
+      ? Math.round((expiryDateObj.getTime() - startDateObj.getTime()) / 1000)
+      : null;
 
   const optionNames = pollData.options.map(option => option.name.trim());
+
   const metadata = JSON.stringify({
     version: 1,
     pollType: pollData.pollType,
@@ -94,10 +132,22 @@ export default function Example({
     })),
   });
 
+  const createPollArgs =
+    startTimestamp !== null && duration !== null
+      ? [
+          pollData.title,
+          optionNames,
+          metadata,
+          BigInt(startTimestamp),
+          BigInt(duration),
+          pollData.mode,
+        ]
+      : undefined;
+
   const { writeAsync } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "createPoll",
-    args: [pollData.title, optionNames, metadata, BigInt(startTimestamp), BigInt(duration), pollData.mode] as any,
+    args: createPollArgs as any,
   });
 
   async function onSubmit() {
@@ -108,12 +158,27 @@ export default function Example({
       }
     }
 
-    if (pollData.startDate.getTime() < Date.now() - 5000) {
+    if (!isStartDateValid) {
+      notification.error("Please enter a valid start date", { showCloseButton: false });
+      return;
+    }
+
+    if (!isExpiryDateValid) {
+      notification.error("Please enter a valid expiry date", { showCloseButton: false });
+      return;
+    }
+
+    if (startTimestamp === null || duration === null) {
+      notification.error("Invalid poll time configuration", { showCloseButton: false });
+      return;
+    }
+
+    if (startDateObj.getTime() < Date.now() - 5000) {
       notification.error("Start date must be now or in the future", { showCloseButton: false });
       return;
     }
 
-    if (pollData.expiry.getTime() <= pollData.startDate.getTime()) {
+    if (expiryDateObj.getTime() <= startDateObj.getTime()) {
       notification.error("Expiry date must be after the start date", { showCloseButton: false });
       return;
     }
@@ -131,11 +196,10 @@ export default function Example({
     try {
       await writeAsync();
       refetchPolls();
+      setOpen(false);
     } catch (err) {
       console.log(err);
     }
-
-    setOpen(false);
   }
 
   return (
@@ -156,7 +220,9 @@ export default function Example({
             onChange={handleTitleChange}
           />
         ) : (
-          <h2 className="text-xl font-semibold font-mono text-neutral-content mb-0 mt-2">{pollData.title}</h2>
+          <h2 className="text-xl font-semibold font-mono text-neutral-content mb-0 mt-2">
+            {pollData.title}
+          </h2>
         )}
 
         <label className="btn btn-circle swap swap-rotate ml-3 bg-primary hover:bg-primary-content text-primary-content hover:text-primary">
@@ -185,16 +251,16 @@ export default function Example({
       <input
         type="datetime-local"
         className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
-        value={pollData.startDate.toLocaleString("sv").replace(" ", "T").slice(0, -3)}
-        onChange={e => setPollData(prev => ({ ...prev, startDate: new Date(e.target.value) }))}
+        value={pollData.startDate}
+        onChange={e => setPollData(prev => ({ ...prev, startDate: e.target.value }))}
       />
 
       <div className="mt-3 mb-2 text-neutral-content">Select the expiry date</div>
       <input
         type="datetime-local"
         className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
-        value={pollData.expiry.toLocaleString("sv").replace(" ", "T").slice(0, -3)}
-        onChange={e => setPollData(prev => ({ ...prev, expiry: new Date(e.target.value) }))}
+        value={pollData.expiry}
+        onChange={e => setPollData(prev => ({ ...prev, expiry: e.target.value }))}
       />
 
       <div className="mt-3 mb-2 text-neutral-content">Select the poll type</div>
@@ -283,6 +349,7 @@ export default function Example({
         >
           Create
         </button>
+
         <button
           type="button"
           className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
