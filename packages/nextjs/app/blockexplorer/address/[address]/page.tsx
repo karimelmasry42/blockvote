@@ -77,7 +77,7 @@ const getContractData = async (address: string) => {
 };
 
 const AddressPage = async ({ params }: PageProps) => {
-  const address = params?.address as string;
+  const address = params?.address as `0x${string}`;
   const contractData: { bytecode: string; assembly: string } | null = await getContractData(address);
   return <AddressComponent address={address} contractData={contractData} />;
 };
