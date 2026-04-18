@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { NetworkOptions } from "./NetworkOptions";
 import CopyToClipboard from "react-copy-to-clipboard";
-const CopyToClipboardComponent = CopyToClipboard as any;
 import { getAddress } from "viem";
 import { Address, useDisconnect } from "wagmi";
 import {
@@ -16,6 +15,8 @@ import {
 import { BlockieAvatar, isENS } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
+
+const CopyToClipboardComponent = CopyToClipboard as any;
 
 const allowedNetworks = getTargetNetworks();
 

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { CopyToClipboard } from "react-copy-to-clipboard";
-const CopyToClipboardComponent = CopyToClipboard as any;
 import { TransactionReceipt } from "viem";
 import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
 import { displayTxResult } from "~~/app/debug/_components/contract";
+
+const CopyToClipboardComponent = CopyToClipboard as any;
 
 export const TxReceipt = (
   txResult: string | number | bigint | Record<string, any> | TransactionReceipt | undefined,

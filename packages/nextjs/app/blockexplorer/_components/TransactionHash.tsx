@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CopyToClipboard } from "react-copy-to-clipboard";
-const CopyToClipboardComponent = CopyToClipboard as any;
 import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+
+const CopyToClipboardComponent = CopyToClipboard as any;
 
 export const TransactionHash = ({ hash }: { hash: string }) => {
   const [addressCopied, setAddressCopied] = useState(false);
