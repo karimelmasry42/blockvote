@@ -85,17 +85,19 @@ export default function Example({
   };
 
   function removeOptions(index: number): void {
-    const newOptions = [...pollData.options];
-    newOptions.splice(index, 1);
+    setPollData(prev => {
+      const newOptions = [...prev.options];
+      newOptions.splice(index, 1);
 
-    const newDetails = [...pollData.candidateDetails];
-    newDetails.splice(index, 1);
+      const newDetails = [...prev.candidateDetails];
+      newDetails.splice(index, 1);
 
-    setPollData(prev => ({
-      ...prev,
-      options: newOptions,
-      candidateDetails: newDetails,
-    }));
+      return {
+        ...prev,
+        options: newOptions,
+        candidateDetails: newDetails,
+      };
+    });
   }
 
   const startDateObj = useMemo(() => (pollData.startDate ? new Date(pollData.startDate) : null), [pollData.startDate]);
