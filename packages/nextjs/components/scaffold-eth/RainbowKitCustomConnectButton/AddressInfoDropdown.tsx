@@ -16,8 +16,6 @@ import { BlockieAvatar, isENS } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
-const CopyToClipboardComponent = CopyToClipboard as any;
-
 const allowedNetworks = getTargetNetworks();
 
 type AddressInfoDropdownProps = {
@@ -71,7 +69,7 @@ export const AddressInfoDropdown = ({
                 <span className=" whitespace-nowrap">Copy address</span>
               </div>
             ) : (
-              <CopyToClipboardComponent
+              <CopyToClipboard
                 text={checkSumAddress}
                 onCopy={() => {
                   setAddressCopied(true);
@@ -87,7 +85,7 @@ export const AddressInfoDropdown = ({
                   />
                   <span className=" whitespace-nowrap">Copy address</span>
                 </div>
-              </CopyToClipboardComponent>
+              </CopyToClipboard>
             )}
           </li>
           <li className={selectingNetwork ? "hidden" : ""}>

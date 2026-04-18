@@ -269,6 +269,26 @@ For public testnet deployment (Sepolia, etc.), the starter repo supports this vi
 
 ---
 
+## CI and Branch Protection
+
+Lint and type-check enforcement happens in three layers, each catching what the previous layer might miss:
+
+| Layer | Script | Bypassable? |
+|---|---|---|
+| Pre-commit (husky + lint-staged) | auto-format staged files | yes (`--no-verify`) |
+| Pre-push (`.husky/pre-push`) | `next lint --max-warnings=0 && tsc --noEmit` on `packages/nextjs` | yes (`--no-verify`) |
+| CI (`.github/workflows/lint.yaml`) | `yarn next:lint --max-warnings=0 && yarn next:check-types` | **no** — required status check on `main` |
+
+The pre-push hook is worktree-aware — it resolves `node_modules` from the main worktree because `yarn install` is not re-run per worktree.
+
+**Branch protection on `main`** is configured via two independent GitHub systems that both apply simultaneously:
+- **Classic branch protection** (`gh api repos/.../branches/main/protection`) — enforces the required `ci (ubuntu-latest, lts/*)` status check, linear history, and admin enforcement.
+- **Rulesets** (Settings → Rules → Rulesets) — additional rules including Copilot code review and code quality gates.
+
+Changing review requirements or status checks in one system does not affect the other. When "merging is blocked" despite a ruleset update, check the classic protection too.
+
+---
+
 ## Known Issues and Technical Debt
 
 | Issue | Severity | Notes |
@@ -284,4 +304,4 @@ For public testnet deployment (Sepolia, etc.), the starter repo supports this vi
 
 ---
 
-*Last updated: April 2026 — added frontend architecture patterns section*
+*Last updated: April 2026 — added CI and branch protection section*

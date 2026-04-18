@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { genRandomSalt } from "maci-crypto";
 import { Keypair, PCommand, PubKey } from "maci-domainobjs";
+import { isAddress } from "viem";
 import { useContractRead, useContractWrite } from "wagmi";
 import PollAbi from "~~/abi/Poll";
 import VoteCard from "~~/components/card/VoteCard";
@@ -177,21 +178,25 @@ export default function PollDetail({ id }: { id: bigint }) {
     };
   }, [poll, candidateOptions]);
 
+  const rawPollAddress = poll?.pollContracts.poll;
+  const pollAddress = rawPollAddress && isAddress(rawPollAddress) ? (rawPollAddress as `0x${string}`) : undefined;
+
   const { data: coordinatorPubKeyResult } = useContractRead({
     abi: PollAbi,
-    address: poll?.pollContracts.poll as `0x${string}`,
+    address: pollAddress,
     functionName: "coordinatorPubKey",
+    enabled: Boolean(pollAddress),
   });
 
   const { writeAsync: publishMessage } = useContractWrite({
     abi: PollAbi,
-    address: poll?.pollContracts.poll as `0x${string}`,
+    address: pollAddress,
     functionName: "publishMessage",
   });
 
   const { writeAsync: publishMessageBatch } = useContractWrite({
     abi: PollAbi,
-    address: poll?.pollContracts.poll as `0x${string}`,
+    address: pollAddress,
     functionName: "publishMessageBatch",
   });
 

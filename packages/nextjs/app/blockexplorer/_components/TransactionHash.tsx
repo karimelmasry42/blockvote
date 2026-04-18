@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { CopyToClipboard } from "react-copy-to-clipboard";
+import CopyToClipboard from "react-copy-to-clipboard";
 import { CheckCircleIcon, DocumentDuplicateIcon } from "@heroicons/react/24/outline";
-
-const CopyToClipboardComponent = CopyToClipboard as any;
 
 export const TransactionHash = ({ hash }: { hash: string }) => {
   const [addressCopied, setAddressCopied] = useState(false);
@@ -21,7 +19,7 @@ export const TransactionHash = ({ hash }: { hash: string }) => {
           aria-hidden="true"
         />
       ) : (
-        <CopyToClipboardComponent
+        <CopyToClipboard
           text={hash as string}
           onCopy={() => {
             setAddressCopied(true);
@@ -34,7 +32,7 @@ export const TransactionHash = ({ hash }: { hash: string }) => {
             className="ml-1.5 text-xl font-normal text-sky-600 h-5 w-5 cursor-pointer"
             aria-hidden="true"
           />
-        </CopyToClipboardComponent>
+        </CopyToClipboard>
       )}
     </div>
   );

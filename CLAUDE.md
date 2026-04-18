@@ -182,7 +182,10 @@ Confirmed changes (from Jira BLOCK project):
   - Prefer the Scaffold-ETH 2 wrappers (`useScaffoldContractRead`, `useScaffoldContractWrite`) for **named deployed contracts** configured through Scaffold-ETH (e.g. `MACIWrapper`).
   - Direct wagmi hooks (`useContractRead`, `useContractWrite`) may be used when the contract address is only known dynamically at runtime (e.g. per-poll `Poll` contracts) or in debug pages that intentionally expose lower-level contract interactions.
 - Code style is enforced automatically before each git commit (ESLint + Prettier via lint-staged).
-- Worktree branches must follow the Jira naming convention: `BLOCK-XX` (where XX is the Jira issue number).
+- A `.husky/pre-push` hook runs `next lint --max-warnings=0 && tsc --noEmit` against `packages/nextjs` for fast local feedback. It is worktree-aware (resolves `node_modules` via `git worktree list`). `--no-verify` bypasses it locally, but CI + branch protection re-enforce the same checks.
+- ESLint rules in `packages/nextjs/.eslintrc.json` include `import/first` (no statements between imports) and Next's `@next/next/no-img-element` (use `next/image` with `unoptimized` for user-supplied URLs — see [PollDetail.tsx](packages/nextjs/components/PollDetail.tsx) for precedent).
+- Worktree branches must follow the Jira naming convention: `BLOCK-XX` (where XX is the Jira issue number). Session/chore branches not tied to a Jira ticket may use a descriptive name (e.g. `ci-lint-hardening`).
+- **Branch protection on `main` uses two systems simultaneously** — classic branch protection (`gh api repos/.../branches/main/protection`) AND rulesets (Settings → Rules → Rulesets). Both apply; changing one does not affect the other. Required status check: `ci (ubuntu-latest, lts/*)` from `.github/workflows/lint.yaml`. Review requirement currently set to 0.
 
 ---
 
