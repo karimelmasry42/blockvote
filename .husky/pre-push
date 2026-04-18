@@ -1,0 +1,10 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# In a git worktree, node_modules lives in the main worktree.
+MAIN_WORKTREE=$(git worktree list --porcelain | awk 'NR==1 {print $2}')
+export MAIN_WORKTREE
+
+cd "$MAIN_WORKTREE/packages/nextjs"
+./node_modules/.bin/next lint --max-warnings=0 && \
+  ./node_modules/.bin/tsc --noEmit --incremental

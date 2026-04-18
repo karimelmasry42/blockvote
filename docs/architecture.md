@@ -269,6 +269,53 @@ For public testnet deployment (Sepolia, etc.), the starter repo supports this vi
 
 ---
 
+## CI and Branch Protection
+
+Lint and type-check enforcement happens in three layers, each catching what the previous layer might miss:
+
+| Layer | Script | Bypassable? |
+|---|---|---|
+| Pre-commit (husky + lint-staged) | auto-format staged files | yes (`--no-verify`) |
+| Pre-push (`.husky/pre-push`) | `next lint --max-warnings=0 && tsc --noEmit` on `packages/nextjs` | yes (`--no-verify`) |
+| CI (`.github/workflows/lint.yaml`) | `yarn next:lint --max-warnings=0 && yarn next:check-types` | **no** — required status check on `main` |
+
+The pre-push hook is worktree-aware — it resolves `node_modules` from the main worktree because `yarn install` is not re-run per worktree.
+
+**Branch protection on `main`** is configured via two independent GitHub systems that both apply simultaneously:
+- **Classic branch protection** (`gh api repos/.../branches/main/protection`) — enforces the required `ci (ubuntu-latest, lts/*)` status check, linear history, and admin enforcement.
+- **Rulesets** (Settings → Rules → Rulesets) — additional rules including Copilot code review and code quality gates.
+
+Changing review requirements or status checks in one system does not affect the other. When "merging is blocked" despite a ruleset update, check the classic protection too.
+
+### Dev loop: lint + type-check after every edit
+
+Before committing anything under `packages/nextjs/`, run:
+
+```bash
+yarn next:lint --max-warnings=0
+yarn next:check-types
+```
+
+The incremental TS cache (`tsconfig.tsbuildinfo`) occasionally lets broken code pass locally while CI rebuilds from scratch and fails. If a PR's CI rejects changes that passed locally, delete the cache and re-run:
+
+```bash
+rm packages/nextjs/tsconfig.tsbuildinfo && yarn next:check-types
+```
+
+Prefer fixing the underlying type mismatch over `as any` casts — casts silence errors everywhere the value flows, not just at the site of the mismatch. When a third-party package's types are unavoidably broken (e.g. a library's `PureComponent<Props>` is missing fields that current `@types/react` requires), the lower-risk fix is usually to drop the dependency and inline the behavior using a native Web API, rather than shim the types.
+
+### Address validation at route boundaries
+
+User-supplied hex strings from route params (e.g. `[address]` dynamic segments) or from contracts that can return `undefined` during loading must not be cast directly to `` `0x${string}` ``. Instead:
+
+- Validate with viem's `isAddress` and return `notFound()` (or render an error state) for invalid input.
+- Normalize the hex with `getAddress` before passing it to downstream consumers so checksum casing is consistent.
+- For wagmi hooks that take an address, use `enabled: Boolean(address)` so the hook doesn't fire against `undefined` during render.
+
+Precedent: [blockexplorer/address/[address]/page.tsx](../packages/nextjs/app/blockexplorer/address/[address]/page.tsx), [PollDetail.tsx](../packages/nextjs/components/PollDetail.tsx).
+
+---
+
 ## Known Issues and Technical Debt
 
 | Issue | Severity | Notes |
@@ -284,4 +331,4 @@ For public testnet deployment (Sepolia, etc.), the starter repo supports this vi
 
 ---
 
-*Last updated: April 2026 — added frontend architecture patterns section*
+*Last updated: April 2026 — added CI/branch-protection section, lint-after-edit dev loop, and address-validation guidance*

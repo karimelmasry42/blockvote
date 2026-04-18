@@ -75,6 +75,11 @@ const handleCandidateDetailChange = (
   newDetails[index] = {
     ...newDetails[index],
     [field]: value,
+  const handleOptionChange = (index: number, field: keyof CandidateOption, value: string) => {
+    setPollData(prev => ({
+      ...prev,
+      options: prev.options.map((option, i) => (i === index ? { ...option, [field]: value } : option)),
+    }));
   };
 
   setPollData(prev => ({
@@ -116,22 +121,14 @@ const handleCandidateDetailChange = (
   }));
 }
 
-  const startDateObj = useMemo(
-    () => (pollData.startDate ? new Date(pollData.startDate) : null),
-    [pollData.startDate],
-  );
+  const startDateObj = useMemo(() => (pollData.startDate ? new Date(pollData.startDate) : null), [pollData.startDate]);
 
-  const expiryDateObj = useMemo(
-    () => (pollData.expiry ? new Date(pollData.expiry) : null),
-    [pollData.expiry],
-  );
+  const expiryDateObj = useMemo(() => (pollData.expiry ? new Date(pollData.expiry) : null), [pollData.expiry]);
 
   const isStartDateValid = !!startDateObj && !Number.isNaN(startDateObj.getTime());
   const isExpiryDateValid = !!expiryDateObj && !Number.isNaN(expiryDateObj.getTime());
 
-  const startTimestamp = isStartDateValid
-    ? Math.round(startDateObj.getTime() / 1000)
-    : null;
+  const startTimestamp = isStartDateValid ? Math.round(startDateObj.getTime() / 1000) : null;
 
   const duration =
     isStartDateValid && isExpiryDateValid
@@ -151,14 +148,7 @@ const metadata = JSON.stringify({
 });
   const createPollArgs =
     startTimestamp !== null && duration !== null
-      ? [
-          pollData.title,
-          optionNames,
-          metadata,
-          BigInt(startTimestamp),
-          BigInt(duration),
-          pollData.mode,
-        ]
+      ? [pollData.title, optionNames, metadata, BigInt(startTimestamp), BigInt(duration), pollData.mode]
       : undefined;
 
 const { writeAsync } = useScaffoldContractWrite({
@@ -243,9 +233,7 @@ const { writeAsync } = useScaffoldContractWrite({
             onChange={handleTitleChange}
           />
         ) : (
-          <h2 className="text-xl font-semibold font-mono text-neutral-content mb-0 mt-2">
-            {pollData.title}
-          </h2>
+          <h2 className="text-xl font-semibold font-mono text-neutral-content mb-0 mt-2">{pollData.title}</h2>
         )}
 
         <label className="btn btn-circle swap swap-rotate ml-3 bg-primary hover:bg-primary-content text-primary-content hover:text-primary">

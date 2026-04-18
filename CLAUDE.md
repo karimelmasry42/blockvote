@@ -182,7 +182,56 @@ Confirmed changes (from Jira BLOCK project):
   - Prefer the Scaffold-ETH 2 wrappers (`useScaffoldContractRead`, `useScaffoldContractWrite`) for **named deployed contracts** configured through Scaffold-ETH (e.g. `MACIWrapper`).
   - Direct wagmi hooks (`useContractRead`, `useContractWrite`) may be used when the contract address is only known dynamically at runtime (e.g. per-poll `Poll` contracts) or in debug pages that intentionally expose lower-level contract interactions.
 - Code style is enforced automatically before each git commit (ESLint + Prettier via lint-staged).
-- Worktree branches must follow the Jira naming convention: `BLOCK-XX` (where XX is the Jira issue number).
+- A `.husky/pre-push` hook runs `next lint --max-warnings=0 && tsc --noEmit` against `packages/nextjs` for fast local feedback. It is worktree-aware (resolves `node_modules` via `git worktree list`). `--no-verify` bypasses it locally, but CI + branch protection re-enforce the same checks.
+- ESLint rules in `packages/nextjs/.eslintrc.json` include `import/first` (no statements between imports) and Next's `@next/next/no-img-element` (use `next/image` with `unoptimized` for user-supplied URLs — see [PollDetail.tsx](packages/nextjs/components/PollDetail.tsx) for precedent).
+- Worktree branches must follow the Jira naming convention: `BLOCK-XX` (where XX is the Jira issue number). Session/chore branches not tied to a Jira ticket may use a descriptive name (e.g. `ci-lint-hardening`).
+- **Branch protection on `main` uses two systems simultaneously** — classic branch protection (`gh api repos/.../branches/main/protection`) AND rulesets (Settings → Rules → Rulesets). Both apply; changing one does not affect the other. Required status check: `ci (ubuntu-latest, lts/*)` from `.github/workflows/lint.yaml`. Review requirement currently set to 0.
+
+---
+
+## Linting and Type-Checking Workflow
+
+**Run lint + type-check after every edit** to `packages/nextjs` before committing. The local-dev setup may silently pass a stale type cache that CI rebuilds from scratch — if you skip this step, a clean CI run can reject a PR for errors your machine doesn't surface.
+
+### Commands (run from repo root)
+
+```bash
+yarn next:lint                    # ESLint with auto-fix disabled
+yarn next:lint --fix              # ESLint with auto-fix (prettier, import order, unused imports)
+yarn next:check-types             # tsc --noEmit --incremental (same as CI)
+```
+
+Or from `packages/nextjs/`:
+
+```bash
+./node_modules/.bin/next lint --max-warnings=0
+rm -f tsconfig.tsbuildinfo && ./node_modules/.bin/tsc --noEmit   # force a clean check
+```
+
+Delete `tsconfig.tsbuildinfo` before running `tsc` when you suspect a stale cache — it occasionally lets broken code pass locally while CI fails.
+
+### Fixing common issues
+
+| Error shape | Fix |
+|---|---|
+| `prettier/prettier` formatting warnings | `yarn next:lint --fix` rewrites the file. |
+| `import/first`, `import/order` | Run `--fix`; if imports must stay in a specific order (e.g. side-effect polyfill first), add `// eslint-disable-next-line import/order` sparingly. |
+| `@next/next/no-img-element` | Replace `<img>` with `next/image`'s `Image` component. For user-supplied URLs, pass `unoptimized`. Precedent: [PollDetail.tsx](packages/nextjs/components/PollDetail.tsx). |
+| `TS2786 'X cannot be used as a JSX component'` | Third-party type mismatch with `@types/react` 18 (seen with `react-copy-to-clipboard`). Prefer dropping the dep in favor of a native Web API over `as any` casts — the cast silences type checking everywhere the component is used. |
+| `TS2345 address must be 0x\${string}` | Validate at the boundary with viem's `isAddress`, normalize with `getAddress`, and gate wagmi reads with `enabled: Boolean(address)` rather than asserting `as 0x\${string}`. See [[address]/page.tsx](packages/nextjs/app/blockexplorer/address/[address]/page.tsx) and [PollDetail.tsx](packages/nextjs/components/PollDetail.tsx) for precedent. |
+
+### If CI fails after local passes
+
+The usual cause is `tsconfig.tsbuildinfo` caching success. Reproduce CI conditions:
+
+```bash
+rm -f packages/nextjs/tsconfig.tsbuildinfo
+yarn install                # ensures lockfile matches a fresh CI install
+yarn next:check-types
+yarn next:lint
+```
+
+If CI still diverges, check which `@types/*` versions CI resolves vs. your `node_modules` — a dependency upgrade can tighten third-party typings.
 
 ---
 
