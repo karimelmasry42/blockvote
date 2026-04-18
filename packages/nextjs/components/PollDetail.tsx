@@ -409,11 +409,15 @@ export default function PollDetail({ id }: { id: bigint }) {
 
             {pollType === PollType.SINGLE_VOTE && votes.length > 0 ? (
               <div className="bg-primary w-full px-6 py-6 rounded-xl mb-2 flex flex-col items-center text-center gap-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={candidateOptions[votes[0].index]?.image || DEFAULT_CANDIDATE_IMAGE}
-                  alt={candidateOptions[votes[0].index]?.name || poll?.options[votes[0].index]}
+                  alt={
+                    (candidateOptions[votes[0].index]?.name || poll?.options?.[votes[0].index] || "Candidate") as string
+                  }
+                  width={80}
+                  height={80}
                   className="w-20 h-20 rounded-full object-cover border border-slate-400"
+                  unoptimized
                 />
 
                 <div className="text-sm opacity-80">You voted for</div>
@@ -438,11 +442,13 @@ export default function PollDetail({ id }: { id: bigint }) {
                       key={vote.index}
                       className="bg-primary flex w-full px-3 py-3 rounded-lg mb-2 items-center gap-3"
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <Image
                         src={candidate?.image || DEFAULT_CANDIDATE_IMAGE}
-                        alt={candidate?.name || poll?.options[vote.index]}
+                        alt={(candidate?.name || poll?.options?.[vote.index] || "Candidate") as string}
+                        width={48}
+                        height={48}
                         className="w-12 h-12 rounded-full object-cover border border-slate-400 shrink-0"
+                        unoptimized
                       />
                       <div className="flex-1">
                         <div className="font-semibold">{candidate?.name || poll?.options[vote.index]}</div>
