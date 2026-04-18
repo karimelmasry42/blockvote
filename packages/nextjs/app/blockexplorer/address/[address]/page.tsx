@@ -1,5 +1,7 @@
+import { notFound } from "next/navigation";
 import fs from "fs";
 import path from "path";
+import { getAddress, isAddress } from "viem";
 import { hardhat } from "viem/chains";
 import { AddressComponent } from "~~/app/blockexplorer/_components/AddressComponent";
 import deployedContracts from "~~/contracts/deployedContracts";
@@ -77,7 +79,11 @@ const getContractData = async (address: string) => {
 };
 
 const AddressPage = async ({ params }: PageProps) => {
-  const address = params?.address as `0x${string}`;
+  const rawAddress = params?.address;
+  if (!rawAddress || !isAddress(rawAddress)) {
+    notFound();
+  }
+  const address = getAddress(rawAddress);
   const contractData: { bytecode: string; assembly: string } | null = await getContractData(address);
   return <AddressComponent address={address} contractData={contractData} />;
 };

@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import { NetworkOptions } from "./NetworkOptions";
-import CopyToClipboard from "react-copy-to-clipboard";
 import { getAddress } from "viem";
 import { Address, useDisconnect } from "wagmi";
 import {
@@ -15,8 +14,6 @@ import {
 import { BlockieAvatar, isENS } from "~~/components/scaffold-eth";
 import { useOutsideClick } from "~~/hooks/scaffold-eth";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
-
-const CopyToClipboardComponent = CopyToClipboard as any;
 
 const allowedNetworks = getTargetNetworks();
 
@@ -71,23 +68,21 @@ export const AddressInfoDropdown = ({
                 <span className=" whitespace-nowrap">Copy address</span>
               </div>
             ) : (
-              <CopyToClipboardComponent
-                text={checkSumAddress}
-                onCopy={() => {
+              <button
+                type="button"
+                className="btn-sm !rounded-xl flex gap-3 py-3"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(checkSumAddress);
                   setAddressCopied(true);
-                  setTimeout(() => {
-                    setAddressCopied(false);
-                  }, 800);
+                  setTimeout(() => setAddressCopied(false), 800);
                 }}
               >
-                <div className="btn-sm !rounded-xl flex gap-3 py-3">
-                  <DocumentDuplicateIcon
-                    className="text-xl font-normal h-6 w-4 cursor-pointer ml-2 sm:ml-0"
-                    aria-hidden="true"
-                  />
-                  <span className=" whitespace-nowrap">Copy address</span>
-                </div>
-              </CopyToClipboardComponent>
+                <DocumentDuplicateIcon
+                  className="text-xl font-normal h-6 w-4 cursor-pointer ml-2 sm:ml-0"
+                  aria-hidden="true"
+                />
+                <span className=" whitespace-nowrap">Copy address</span>
+              </button>
             )}
           </li>
           <li className={selectingNetwork ? "hidden" : ""}>
