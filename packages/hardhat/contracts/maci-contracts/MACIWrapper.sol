@@ -193,6 +193,7 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 			_startTime,
 			endTime
 		);
+		require(isQv == Mode.NON_QV, "Quadratic voting is disabled");
 	}
 
 	function getPollId(address _poll) public view returns (uint256 pollId) {
@@ -236,7 +237,8 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	function closePoll(uint256 _pollId) public onlyOwner {
 		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
 		PollData storage poll = _polls[_pollId];
-		if (bytes(poll.tallyJsonCID).length > 0) revert PollAlreadyClosed(_pollId);
+		if (bytes(poll.tallyJsonCID).length > 0)
+			revert PollAlreadyClosed(_pollId);
 
 		poll.paused = false;
 		poll.endTime = block.timestamp;

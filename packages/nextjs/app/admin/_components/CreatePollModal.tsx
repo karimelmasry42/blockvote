@@ -32,23 +32,25 @@ export default function Example({
   const now = new Date();
   const defaultExpiry = new Date(now.getTime() + 60 * 60 * 1000);
 
-  const [pollData, setPollData] = useState({
-    title: "Dummy Title",
-    startDate: formatDateTimeLocal(now),
-    expiry: formatDateTimeLocal(defaultExpiry),
-    pollType: PollType.NOT_SELECTED,
-    mode: EMode.QV,
-    options: [{ name: "", image: "", description: "" }] as CandidateOption[],
-  });
+ const [pollData, setPollData] = useState({
+  title: "Dummy Title",
+  startDate: formatDateTimeLocal(now),
+  expiry: formatDateTimeLocal(defaultExpiry),
+  pollType: PollType.NOT_SELECTED,
+  mode: EMode.NON_QV,
+  options: [""],
+  candidateDetails: [{ image: "", description: "" }],
+});
 
   const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
 
-  const handleAddOption = () => {
-    setPollData(prev => ({
-      ...prev,
-      options: [...prev.options, { name: "", image: "", description: "" }],
-    }));
-  };
+ const handleAddOption = () => {
+  setPollData(prev => ({
+    ...prev,
+    options: [...prev.options, ""],
+    candidateDetails: [...prev.candidateDetails, { image: "", description: "" }],
+  }));
+};
 
   const handlePollTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const pollType = parseInt(e.target.value);
@@ -59,18 +61,27 @@ export default function Example({
     }));
   };
 
-  const handleOptionChange = (
-    index: number,
-    field: keyof CandidateOption,
-    value: string,
-  ) => {
-    setPollData(prev => ({
-      ...prev,
-      options: prev.options.map((option, i) =>
-        i === index ? { ...option, [field]: value } : option,
-      ),
-    }));
+ const handleOptionChange = (index: number, value: string) => {
+  const newOptions = [...pollData.options];
+  newOptions[index] = value;
+  setPollData(prev => ({ ...prev, options: newOptions }));
+};
+const handleCandidateDetailChange = (
+  index: number,
+  field: "image" | "description",
+  value: string,
+) => {
+  const newDetails = [...pollData.candidateDetails];
+  newDetails[index] = {
+    ...newDetails[index],
+    [field]: value,
   };
+
+  setPollData(prev => ({
+    ...prev,
+    candidateDetails: newDetails,
+  }));
+};
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPollData(prev => ({ ...prev, title: e.target.value }));
@@ -92,11 +103,18 @@ export default function Example({
   };
 
   function removeOptions(index: number): void {
-    setPollData(prev => ({
-      ...prev,
-      options: prev.options.filter((_, i) => i !== index),
-    }));
-  }
+  const newOptions = [...pollData.options];
+  newOptions.splice(index, 1);
+
+  const newDetails = [...pollData.candidateDetails];
+  newDetails.splice(index, 1);
+
+  setPollData(prev => ({
+    ...prev,
+    options: newOptions,
+    candidateDetails: newDetails,
+  }));
+}
 
   const startDateObj = useMemo(
     () => (pollData.startDate ? new Date(pollData.startDate) : null),
@@ -120,18 +138,17 @@ export default function Example({
       ? Math.round((expiryDateObj.getTime() - startDateObj.getTime()) / 1000)
       : null;
 
-  const optionNames = pollData.options.map(option => option.name.trim());
+ const optionNames = pollData.options.map(option => option.trim());
 
-  const metadata = JSON.stringify({
-    version: 1,
-    pollType: pollData.pollType,
-    options: pollData.options.map(option => ({
-      name: option.name.trim(),
-      image: option.image?.trim() || "",
-      description: option.description?.trim() || "",
-    })),
-  });
-
+const metadata = JSON.stringify({
+  version: 1,
+  pollType: pollData.pollType,
+  options: pollData.options.map((option, index) => ({
+    name: option.trim(),
+    image: pollData.candidateDetails[index]?.image?.trim() || "",
+    description: pollData.candidateDetails[index]?.description?.trim() || "",
+  })),
+});
   const createPollArgs =
     startTimestamp !== null && duration !== null
       ? [
@@ -144,19 +161,25 @@ export default function Example({
         ]
       : undefined;
 
-  const { writeAsync } = useScaffoldContractWrite({
-    contractName: "MACIWrapper",
-    functionName: "createPoll",
-    args: createPollArgs as any,
-  });
-
-  async function onSubmit() {
-    for (const option of pollData.options) {
-      if (!option.name.trim()) {
-        notification.error("Candidate name cannot be blank", { showCloseButton: false });
-        return;
-      }
-    }
+const { writeAsync } = useScaffoldContractWrite({
+  contractName: "MACIWrapper",
+  functionName: "createPoll",
+  args: [
+    pollData.title,
+    optionNames,
+    metadata,
+    BigInt(Number(startTimestamp)),
+    BigInt(Number(duration)),
+    EMode.NON_QV,
+  ] as any,
+});
+ async function onSubmit() {
+ for (const option of pollData.options) {
+  if (!option.trim()) {
+    notification.error("Candidate name cannot be blank", { showCloseButton: false });
+    return;
+  }
+}
 
     if (!isStartDateValid) {
       notification.error("Please enter a valid start date", { showCloseButton: false });
@@ -277,69 +300,61 @@ export default function Example({
         <option value={PollType.WEIGHTED_MULTIPLE_VOTE}>Weighted-Multiple Candidate Select</option>
       </select>
 
-      <div className="mt-3 mb-2 text-neutral-content">Quadratic Vote or Non Quadratic Vote</div>
-      <select
-        className="select bg-secondary text-neutral w-full rounded-xl"
-        value={pollData.mode}
-        onChange={handleModeChange}
-        disabled={pollData.pollType === PollType.SINGLE_VOTE}
-      >
-        <option value={EMode.QV}>Quadratic Vote</option>
-        <option value={EMode.NON_QV}>Non Quadratic Vote</option>
-      </select>
+      
 
       <div className="w-full h-[0.5px] bg-[#3647A4] shadow-2xl my-5" />
 
-      <div className="mb-3 text-neutral-content">Create the options</div>
+    <div className="mb-3 text-neutral-content">Create the options</div>
 
-      {pollData.options.map((option, index) => (
-        <div key={index} className="mb-4 rounded-xl border border-[#3647A4] p-4">
-          <div className="flex justify-between items-start gap-4">
-            <div className="flex-1 flex flex-col gap-3">
-              <input
-                type="text"
-                className="border border-[#3647A4] bg-white text-black rounded-md px-4 py-2 w-full focus:outline-none"
-                placeholder={`Candidate ${index + 1} Name`}
-                value={option.name}
-                onChange={e => handleOptionChange(index, "name", e.target.value)}
-              />
+{pollData.options.map((option, index) => (
+  <div key={index} className="mb-4 rounded-xl border border-[#3647A4] p-4">
+    <div className="flex justify-between items-start gap-4">
+      <div className="flex-1 flex flex-col gap-3">
+        <input
+          type="text"
+          className="border border-[#3647A4] bg-white text-black rounded-md px-4 py-2 w-full focus:outline-none"
+          placeholder={`Candidate ${index + 1} Name`}
+          value={option}
+          onChange={e => handleOptionChange(index, e.target.value)}
+        />
 
-              <input
-                type="text"
-                className="border border-[#3647A4] bg-white text-black rounded-md px-4 py-2 w-full focus:outline-none"
-                placeholder="Image URL (optional)"
-                value={option.image || ""}
-                onChange={e => handleOptionChange(index, "image", e.target.value)}
-              />
+        <input
+          type="text"
+          className="border border-[#3647A4] bg-white text-black rounded-md px-4 py-2 w-full focus:outline-none"
+          placeholder="Image URL (optional)"
+          value={pollData.candidateDetails[index]?.image || ""}
+          onChange={e => handleCandidateDetailChange(index, "image", e.target.value)}
+        />
 
-              <textarea
-                className="border border-[#3647A4] bg-white text-black rounded-md px-4 py-2 w-full focus:outline-none min-h-[80px]"
-                placeholder="Description (optional)"
-                value={option.description || ""}
-                onChange={e => handleOptionChange(index, "description", e.target.value)}
-              />
-            </div>
+        <textarea
+          className="border border-[#3647A4] bg-white text-black rounded-md px-4 py-2 w-full focus:outline-none min-h-[80px]"
+          placeholder="Description (optional)"
+          value={pollData.candidateDetails[index]?.description || ""}
+          onChange={e => handleCandidateDetailChange(index, "description", e.target.value)}
+        />
+      </div>
 
-            {pollData.options.length > 1 && (
-              <button
-                type="button"
-                className="btn btn-outline text-primary hover:bg-primary hover:text-primary-content bg-primary-content"
-                onClick={() => removeOptions(index)}
-              >
-                <RxCross2 size={20} />
-              </button>
-            )}
-          </div>
-        </div>
-      ))}
+      {pollData.options.length > 1 && (
+        <button
+          type="button"
+          className="btn btn-outline text-primary hover:bg-primary hover:text-primary-content bg-primary-content"
+          onClick={() => removeOptions(index)}
+        >
+          <RxCross2 size={20} />
+        </button>
+      )}
+    </div>
+  </div>
+))}
 
-      <button
-        className="btn btn-outline mt-2 text-primary hover:bg-primary hover:text-primary-content bg-primary-content"
-        onClick={handleAddOption}
-      >
-        <LuCross size={20} />
-        <span>Add Candidate</span>
-      </button>
+<button
+  type="button"
+  className="btn btn-outline mt-2 text-primary hover:bg-primary hover:text-primary-content bg-primary-content"
+  onClick={handleAddOption}
+>
+  <LuCross size={20} />
+  <span>Add Candidate</span>
+</button>
 
       <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
         <button

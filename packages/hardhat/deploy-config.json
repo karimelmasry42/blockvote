@@ -62,7 +62,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.a6d3d86f81f76bd168ab28feefb0197277b693b109be40c891a916217b9e35ee",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "scroll_sepolia": {
