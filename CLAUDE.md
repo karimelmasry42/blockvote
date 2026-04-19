@@ -14,6 +14,7 @@ Forked from: https://github.com/yashgo0018/maci-wrapper
 Full architecture: see `docs/architecture.md`
 Project overview (non-technical): see `docs/project-overview.md`
 Cryptographic systems: see `docs/cryptography.md`
+Smart contract reference: see `docs/smart-contracts.md`
 
 ---
 
@@ -137,7 +138,7 @@ Confirmed changes (from Jira BLOCK project):
 - Poll list sorted newest-first in both voter and admin views
 
 **Voting UI fixes**:
-- Quadratic vote controls greyed out when poll is single-candidate type
+- Quadratic voting disabled
 - Bug fix: user could navigate back to home page and re-enter a poll to vote again after already voting (BLOCK-16, now fixed)
 - Change vote button disappears when poll ends even if user stays on page
 - Unnecessary transaction no longer sent when user opens "change vote" but makes no changes
@@ -150,13 +151,6 @@ Confirmed changes (from Jira BLOCK project):
 **Results**:
 - Single-candidate result page simplified
 
-**Not yet done** (open Jira items):
-- Main page content still refers to MACI in places (BLOCK-29)
-- Null date input crash on poll creation (BLOCK-39)
-- Pinata JWT workflow not documented in README (BLOCK-42)
-- Identity verification not started (BLOCK-41)
-- Architecture diagram not created (BLOCK-26)
-
 ---
 
 ## Voting Types — Important Constraints
@@ -166,9 +160,6 @@ Confirmed changes (from Jira BLOCK project):
 | Single candidate | ✅ Working | Voter picks exactly one option |
 | Multi-candidate | ✅ Working | Voter picks multiple options |
 | Simple weighted | ✅ Working | Voter allocates up to 100 credits freely |
-| Quadratic | 🚫 Must be disabled | Not appropriate for elections context |
-
-**Quadratic voting must be disabled** — remove from UI and disable the contract path. It is designed for DAO token governance and is confusing/inappropriate for the election use case.
 
 **Security note**: The 100 voice credit limit is enforced by `ConstantInitialVoiceCreditProxy` at the contract level. Poll type restrictions (e.g., preventing a "single candidate" voter from allocating credits to multiple options) are NOT yet enforced at the contract level — this is a security gap that needs to be addressed.
 
@@ -248,28 +239,18 @@ If CI still diverges, check which `@types/*` versions CI resolves vs. your `node
 
 | Issue | Severity |
 |---|---|
-| zk-SNARK proof generation fails (`yarn hardhat prove`) | 🔴 Critical |
-| Full tally flow (merge → prove → upload → results) not validated end-to-end (upload step fixed — see `/api/pinata/upload` route) | 🟡 Medium |
 | Poll type restrictions only enforced in UI — contract callable directly, bypassing rules | 🔴 Security gap |
 | Admin = Coordinator (same account/key) — no separation of trust | 🟡 Medium |
 | Voice credit limit (100) not configurable per poll | 🟡 Medium |
-| Quadratic voting not yet disabled | 🟡 Medium |
 | No automated tests | 🟡 Medium |
 | Package vulnerabilities flagged by GitHub — triage needed | 🟡 Medium |
 | Local testnet only, public testnet not yet tested | 🟠 Low |
-| Null poll dates crash on creation (BLOCK-39) | 🟠 Low |
 
 ---
 
 ## Current Priority Tasks (as of April 2026)
 
-1. 🔴 Fix zk-SNARK proof generation — debug `yarn hardhat prove` failure
-2. 🔴 Validate full tally flow end-to-end — merge → prove → upload → results
 3. 🔴 Investigate poll type enforcement — audit whether contract enforces poll type restrictions
-4. 🟡 Disable quadratic voting — remove from UI and contract path
-5. 🟡 Fix null date crash on poll creation (BLOCK-39)
-6. 🟡 Document Pinata JWT setup in README (BLOCK-42)
-7. 🟡 Write automated tests — contract unit tests (Hardhat/Chai) + frontend tests
 8. 🟡 Triage package vulnerabilities — separate upstream MACI issues from project issues
 9. 🟠 Test public testnet deployment (Sepolia)
 10. 🟠 Document and plan admin/coordinator role separation

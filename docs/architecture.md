@@ -1,6 +1,8 @@
 # BlockVote — Technical Architecture
 
 > This document describes the system architecture of BlockVote, how its components interact, and the role of cryptographic primitives (MACI, zk-SNARKs) in the voting flow.
+>
+> For a per-contract reference (roles, edit-safety, known security gaps in the custom wrapper), see [smart-contracts.md](smart-contracts.md).
 
 ---
 
@@ -10,18 +12,18 @@ BlockVote is a decentralized application (dApp) composed of four main layers:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   Next.js Frontend                   │
-│         (Voter UI, Admin Dashboard, Results)         │
+│                   Next.js Frontend                  │
+│         (Voter UI, Admin Dashboard, Results)        │
 └──────────────────────┬──────────────────────────────┘
                        │ reads/writes via wagmi/viem
 ┌──────────────────────▼──────────────────────────────┐
-│              Ethereum Smart Contracts                │
+│              Ethereum Smart Contracts               │
 │     MACI · Poll · PollProcessorAndTallyer · etc.    │
 └────────────┬──────────────────────┬─────────────────┘
-             │ Hardhat RPC           │ IPFS CID stored on-chain
+             │ Hardhat RPC          │ IPFS CID stored on-chain
 ┌────────────▼──────────┐  ┌────────▼────────────────┐
-│   Local Hardhat Node  │  │   IPFS via Pinata        │
-│   (dev testnet)       │  │   (images, tally files)  │
+│   Local Hardhat Node  │  │   IPFS via Pinata       │
+│   (dev testnet)       │  │   (images, tally files) │
 └───────────────────────┘  └─────────────────────────┘
 ```
 
@@ -145,28 +147,28 @@ In a naive on-chain voting system, all votes are public on the blockchain. This 
 Voter                    Blockchain                  Coordinator
   │                          │                            │
   ├─ Register ───────────────► MACI.signUp()              │
-  │  (submit MACI pubkey)     │                            │
+  │  (submit MACI pubkey)    │                            │
   │                          │                            │
-  ├─ Encrypt vote ────────────► Poll.publishMessage()      │
-  │  (ECDH shared key)        │  (encrypted msg stored)   │
+  ├─ Encrypt vote ────────────► Poll.publishMessage()     │
+  │  (ECDH shared key)       │  (encrypted msg stored)    │
   │                          │                            │
   │  [optional: change vote] │                            │
-  ├─ Encrypt new vote ────────► Poll.publishMessage()      │
+  ├─ Encrypt new vote ────────► Poll.publishMessage()     │
   │                          │                            │
   │         [poll ends]      │                            │
   │                          │                            │
-  │                 Admin runs:│                            │
-  │                  merge ───►                            │
+  │               Admin runs:│                            │
+  │                  merge ───►                           │
   │                          │                            │
   │                          │◄── prove (off-chain) ──────┤
   │                          │    (decrypt, tally,        │
   │                          │     generate zk proof)     │
   │                          │                            │
   │                          │◄── upload tally.json ──────┤
-  │                          │    PPT.verifyProof()        │
+  │                          │    PPT.verifyProof()       │
   │                          │    (on-chain verification) │
   │                          │                            │
-  ├─ View results ◄───────────┤                            │
+  ├─ View results ◄──────────┤                            │
 ```
 
 #### Why Vote Changing Defeats Bribery
@@ -226,13 +228,9 @@ Output files go in `tally-output/` (gitignored) to prevent accidental commits.
 > ⚠️ **Known Issue**: The proof generation step (Step 2) currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. This is a **critical bug** that must be resolved before the project can be considered functional. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
 
 #### The Pinata/IPFS Role
-Pinata is used in two places:
 
-1. **Candidate metadata**: When creating a poll, candidate images and descriptions are uploaded to IPFS via Pinata. The returned IPFS CID (content hash) is stored on-chain. The frontend reads it back using the `NEXT_PUBLIC_PINATA_GATEWAY` URL.
+**Tally file**: After proof generation, the `tally.json` file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`). The IPFS CID is then submitted to the smart contract to publish results. Environment variable: `PINATA_JWT` (server-side only, never exposed to the browser).
 
-2. **Tally file**: After proof generation, the `tally.json` file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`). The IPFS CID is then submitted to the smart contract to publish results. Environment variable: `PINATA_JWT` (server-side only, never exposed to the browser).
-
-Both use the same Pinata account and API key. The JWT is used for uploads; the Gateway URL is used for reads.
 
 ---
 
@@ -246,7 +244,6 @@ BlockVote supports three voting modes, configured per-poll at creation time:
 | **Multi-candidate** | Voter picks multiple options, one vote each | 1 credit per selection |
 | **Simple weighted** | Voter allocates credits across options freely | Up to 100 credits total |
 
-> **Quadratic voting** (where cost = votes²) is currently implemented in the codebase but is planned for removal. It was designed for DAO token governance and is not appropriate for general elections. Its UI elements should be disabled/removed.
 
 > **Credit limit**: All voters receive 100 voice credits via `ConstantInitialVoiceCreditProxy`. This is enforced at the contract level. The limit is not currently configurable per-poll.
 
@@ -320,13 +317,9 @@ Precedent: [blockexplorer/address/[address]/page.tsx](../packages/nextjs/app/blo
 
 | Issue | Severity | Notes |
 |---|---|---|
-| zk-SNARK proof generation fails | 🔴 Critical | `yarn hardhat prove` gives "invalid file" error |
 | Admin = Coordinator (same key) | 🟡 Medium | Should be separated for security in production |
 | Voice credit limit (100) not configurable | 🟡 Medium | Hardcoded in `ConstantInitialVoiceCreditProxy` |
-| Quadratic voting not yet disabled | 🟡 Medium | UI and contract logic still present |
-| No automated tests | 🟡 Medium | Manual testing only |
 | Local testnet only | 🟡 Medium | No public testnet deployment tested |
-| Null poll dates crash | 🟠 Low-Medium | BLOCK-39, input validation needed |
 | Admin address not verified on-chain | 🟠 Low-Medium | Admin role assumed from account index, not enforced |
 
 ---
