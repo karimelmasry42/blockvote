@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { type ChangeEvent, useMemo, useState } from "react";
 import { Dialog } from "@headlessui/react";
 import { LuCross } from "react-icons/lu";
 import { MdEdit } from "react-icons/md";
@@ -51,7 +51,7 @@ export default function Example({
     }));
   };
 
-  const handlePollTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handlePollTypeChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const pollType = parseInt(e.target.value);
     setPollData(prev => ({ ...prev, pollType }));
   };
@@ -72,7 +72,7 @@ export default function Example({
     }));
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setPollData(prev => ({ ...prev, title: e.target.value }));
   };
 
