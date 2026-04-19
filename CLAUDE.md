@@ -250,10 +250,10 @@ If CI still diverges, check which `@types/*` versions CI resolves vs. your `node
 
 ## Current Priority Tasks (as of April 2026)
 
-3. 🔴 Investigate poll type enforcement — audit whether contract enforces poll type restrictions
-8. 🟡 Triage package vulnerabilities — separate upstream MACI issues from project issues
-9. 🟠 Test public testnet deployment (Sepolia)
-10. 🟠 Document and plan admin/coordinator role separation
+1. 🔴 Investigate poll type enforcement — audit whether contract enforces poll type restrictions
+2. 🟡 Triage package vulnerabilities — separate upstream MACI issues from project issues
+3. 🟠 Test public testnet deployment (Sepolia)
+4. 🟠 Document and plan admin/coordinator role separation
 
 ---
 

@@ -18,12 +18,12 @@ BlockVote is a decentralized application (dApp) composed of four main layers:
                        │ reads/writes via wagmi/viem
 ┌──────────────────────▼──────────────────────────────┐
 │              Ethereum Smart Contracts               │
-│     MACI · Poll · PollProcessorAndTallyer · etc.    │
+│     MACI · Poll · MessageProcessor · Tally · etc.   │
 └────────────┬──────────────────────┬─────────────────┘
              │ Hardhat RPC          │ IPFS CID stored on-chain
 ┌────────────▼──────────┐  ┌────────▼────────────────┐
 │   Local Hardhat Node  │  │   IPFS via Pinata       │
-│   (dev testnet)       │  │   (images, tally files) │
+│   (dev testnet)       │  │   (tally files / JSON)  │
 └───────────────────────┘  └─────────────────────────┘
 ```
 
@@ -165,7 +165,8 @@ Voter                    Blockchain                  Coordinator
   │                          │     generate zk proof)     │
   │                          │                            │
   │                          │◄── upload tally.json ──────┤
-  │                          │    PPT.verifyProof()       │
+  │                          │    MessageProcessor/Tally  │
+  │                          │    .verify*()              │
   │                          │    (on-chain verification) │
   │                          │                            │
   ├─ View results ◄──────────┤                            │
