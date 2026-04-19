@@ -128,14 +128,7 @@ export default function Example({
   const { writeAsync } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "createPoll",
-    args: [
-      pollData.title,
-      optionNames,
-      metadata,
-      BigInt(Number(startTimestamp)),
-      BigInt(Number(duration)),
-      EMode.NON_QV,
-    ] as any,
+    args: [undefined, undefined, undefined, undefined, undefined, undefined] as any,
   });
   async function onSubmit() {
     for (const option of pollData.options) {
@@ -181,7 +174,9 @@ export default function Example({
     }
 
     try {
-      await writeAsync();
+      await writeAsync({
+        args: [pollData.title, optionNames, metadata, BigInt(startTimestamp), BigInt(duration), EMode.NON_QV] as any,
+      });
       refetchPolls();
       setOpen(false);
     } catch (err) {
