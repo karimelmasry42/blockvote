@@ -62,7 +62,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.a6d3d86f81f76bd168ab28feefb0197277b693b109be40c891a916217b9e35ee",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "scroll_sepolia": {
@@ -127,7 +127,7 @@
     "Poll": {
       "pollDuration": 10800,
       "coordinatorPubkey": "macipk.0a1ce79a43fa676ee3d2882c79d9164a24d4a22bb6190e3d8fa25d97bffc069a",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "optimism": {
@@ -193,7 +193,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.a6d3d86f81f76bd168ab28feefb0197277b693b109be40c891a916217b9e35ee",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "arbitrum_sepolia": {
@@ -259,7 +259,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.a6d3d86f81f76bd168ab28feefb0197277b693b109be40c891a916217b9e35ee",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "localhost": {
@@ -391,7 +391,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.a6d3d86f81f76bd168ab28feefb0197277b693b109be40c891a916217b9e35ee",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "optimism_sepolia": {
@@ -462,7 +462,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.a6d3d86f81f76bd168ab28feefb0197277b693b109be40c891a916217b9e35ee",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "gnosis_chiado": {
@@ -533,7 +533,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.0a1ce79a43fa676ee3d2882c79d9164a24d4a22bb6190e3d8fa25d97bffc069a",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "gnosis": {
@@ -604,7 +604,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.0a1ce79a43fa676ee3d2882c79d9164a24d4a22bb6190e3d8fa25d97bffc069a",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "polygon_amoy": {
@@ -675,7 +675,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.0a1ce79a43fa676ee3d2882c79d9164a24d4a22bb6190e3d8fa25d97bffc069a",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   },
   "polygon": {
@@ -746,7 +746,7 @@
     "Poll": {
       "pollDuration": 3600,
       "coordinatorPubkey": "macipk.0a1ce79a43fa676ee3d2882c79d9164a24d4a22bb6190e3d8fa25d97bffc069a",
-      "useQuadraticVoting": true
+      "useQuadraticVoting": false
     }
   }
 }

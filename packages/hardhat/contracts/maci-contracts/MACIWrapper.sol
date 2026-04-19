@@ -141,6 +141,7 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		Mode isQv
 	) public onlyOwner {
 		// TODO: check if the number of options are more than limit
+		require(isQv == Mode.NON_QV, "Quadratic voting is disabled");
 
 		uint256 pollId = nextPollId;
 
@@ -236,7 +237,8 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	function closePoll(uint256 _pollId) public onlyOwner {
 		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
 		PollData storage poll = _polls[_pollId];
-		if (bytes(poll.tallyJsonCID).length > 0) revert PollAlreadyClosed(_pollId);
+		if (bytes(poll.tallyJsonCID).length > 0)
+			revert PollAlreadyClosed(_pollId);
 
 		poll.paused = false;
 		poll.endTime = block.timestamp;
