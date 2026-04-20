@@ -17,23 +17,6 @@ type HeaderMenuLink = {
   icon?: React.ReactNode;
 };
 
-const homeLink: HeaderMenuLink = {
-  label: "Home",
-  href: "/",
-};
-
-const pollsLink: HeaderMenuLink = {
-  label: "Polls",
-  href: "/polls",
-  icon: <ListBulletIcon className="h-4 w-4" />,
-};
-
-const registerLink: HeaderMenuLink = {
-  label: "Register to Vote",
-  href: "/",
-  icon: <ListBulletIcon className="h-4 w-4" />,
-};
-
 const debugContractsLink: HeaderMenuLink = {
   label: "Debug Contracts",
   href: "/debug",
@@ -95,10 +78,10 @@ export const HeaderMenuLinks = () => {
       })}
 
       {isConnected && !isRegistered && address !== owner && (
-  <li className="flex items-center">
-    <RegisterButton label="Register to Vote" compact />
-  </li>
-)}
+        <li className="flex items-center">
+          <RegisterButton label="Register to Vote" compact />
+        </li>
+      )}
     </>
   );
 };

@@ -29,8 +29,8 @@ export default function RegisterButton({
   }
 
   const buttonClass = compact
-  ? "bg-secondary shadow-md hover:bg-secondary text-white py-1 px-3 text-sm rounded-full transition flex items-center"
-  : "border border-slate-600 bg-primary px-5 py-3 rounded-lg font-bold hover:bg-secondary hover:shadow-md transition";
+    ? "bg-secondary shadow-md hover:bg-secondary text-white py-1 px-3 text-sm rounded-full transition flex items-center"
+    : "border border-slate-600 bg-primary px-5 py-3 rounded-lg font-bold hover:bg-secondary hover:shadow-md transition";
 
   const completeClass = compact
     ? "bg-base-100 border border-slate-600 py-1.5 px-3 text-sm rounded-full font-semibold"
