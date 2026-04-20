@@ -109,8 +109,6 @@ yarn hardhat prove \
 
 Output files go in `tally-output/` which is gitignored. Do not use `--output-dir .` as that places files in `packages/hardhat/` where they could be committed accidentally.
 
-> ⚠️ **KNOWN BUG**: Step 2 currently fails with an "invalid file" error. Root cause unknown — likely related to zkey file paths, output directory config, or circuit parameter mismatch. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
-
 ---
 
 ## MACI Key Concepts (Read Before Editing Contracts)

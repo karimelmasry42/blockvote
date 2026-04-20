@@ -47,7 +47,7 @@ Key pages and their responsibilities:
 
 The frontend interacts with the blockchain via **wagmi** and **viem** hooks (injected by Scaffold-ETH 2). It reads contract state (polls, registration status, results) and sends signed transactions (register, vote, change vote).
 
-**IPFS integration**: Candidate images and descriptions are stored on IPFS via Pinata. The frontend reads the `NEXT_PUBLIC_PINATA_GATEWAY` env variable to construct IPFS URLs. The admin upload flow for tally results uses a server-side API route (`/api/pinata/upload`) to proxy uploads to Pinata, keeping the `PINATA_JWT` secret on the server.
+**IPFS integration**: The admin upload flow for tally results uses a server-side API route (`/api/pinata/upload`) to proxy uploads to Pinata, keeping the `PINATA_JWT` secret on the server. The frontend reads `NEXT_PUBLIC_PINATA_GATEWAY` to construct IPFS URLs when fetching tally JSON. Candidate images are stored as URLs in on-chain metadata (not uploaded by this app) — whether those URLs point to Pinata or arbitrary external hosts is up to the poll creator.
 
 Environment config: `packages/nextjs/.env.example`
 
@@ -63,7 +63,7 @@ Environment config: `packages/nextjs/.env.example`
 - Do not call wagmi hooks directly for contract interactions — use the scaffold-eth wrappers.
 
 **Poll data**:
-- `useFetchPolls` / `useFetchPoll` — fetch and normalise poll data from the chain. Poll metadata is stored on-chain in `MACIWrapper.PollData.metadata` as a JSON string, which the frontend parses directly. IPFS via Pinata is used for referenced assets such as candidate images and tally files, not for storing only a poll-metadata CID on-chain.
+- `useFetchPolls` / `useFetchPoll` — fetch and normalise poll data from the chain. Poll metadata is stored on-chain in `MACIWrapper.PollData.metadata` as a JSON string, which the frontend parses directly. The metadata contains candidate details (including image URLs) inline; only the tally JSON is uploaded to IPFS via Pinata.
 
 **UI library**: Tailwind CSS + DaisyUI component library. Use DaisyUI class names before writing custom CSS.
 
@@ -88,14 +88,13 @@ One instance is deployed per poll. Responsibilities:
 - Supports vote changing (voters can submit new messages overriding old ones)
 - Stores the coordinator's public key
 
-#### `PollProcessorAndTallyer.sol` (PPT)
-Used after the poll closes. Responsibilities:
-- Processes batches of encrypted messages
-- Verifies the zk-SNARK proof submitted by the coordinator
-- Records the final tally on-chain once the proof is verified
+#### `MessageProcessor.sol` and `Tally.sol`
+Current MACI splits the old `PollProcessorAndTallyer` into two per-poll contracts, each deployed by its own factory (`MessageProcessorFactory`, `TallyFactory`):
+- **`MessageProcessor`** — the coordinator calls `processMessages(...)`, which verifies the `ProcessMessages` zk-SNARK proof via `Verifier` + `VkRegistry` and advances the message-processing state.
+- **`Tally`** — once all messages are processed, the coordinator calls `tallyVotes(...)`, which verifies the `TallyVotes` zk-SNARK proof and records the final tally commitment on-chain.
 
 #### `VkRegistry.sol`
-Stores the **verification keys** for the zk-SNARK circuits. These keys are generated during deployment from the pre-compiled circuit parameter files (`.zkey` files). They are used by PPT to verify proofs on-chain.
+Stores the **verification keys** for the zk-SNARK circuits. These keys are generated during deployment from the pre-compiled circuit parameter files (`.zkey` files). `MessageProcessor` and `Tally` read from this registry (through `Verifier`) to validate proofs.
 
 #### Gatekeeper Contract
 Controls who can register. Currently uses `FreeForAllGatekeeper` (anyone with a wallet can register). Planned replacement: a custom gatekeeper that validates national ID.
@@ -165,8 +164,11 @@ Voter                    Blockchain                  Coordinator
   │                          │     generate zk proof)     │
   │                          │                            │
   │                          │◄── upload tally.json ──────┤
-  │                          │    MessageProcessor/Tally  │
-  │                          │    .verify*()              │
+  │                   Coordinator submits:│                │
+  │                          │◄── processMessages(...) ───┤
+  │                          │◄── tallyVotes(...) ────────┤
+  │                          │  (proofs verified on-chain │
+  │                          │   via Verifier+VkRegistry) │
   │                          │    (on-chain verification) │
   │                          │                            │
   ├─ View results ◄──────────┤                            │
@@ -225,8 +227,6 @@ yarn hardhat prove \
 Output files go in `tally-output/` (gitignored) to prevent accidental commits.
 
 > **Local Hardhat chain timing**: The merge step checks the immutable `deployTime + duration` from `Poll.sol`, NOT the `endTime` in `MACIWrapper`. If the admin closes a poll early via the UI, MACI's merge task still waits for the original on-chain duration to elapse. On a local Hardhat node, block timestamps only advance when blocks are mined — use `yarn hardhat run scripts/advance-time.ts --network localhost` to force the clock forward.
-
-> ⚠️ **Known Issue**: The proof generation step (Step 2) currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. This is a **critical bug** that must be resolved before the project can be considered functional. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
 
 #### The Pinata/IPFS Role
 
