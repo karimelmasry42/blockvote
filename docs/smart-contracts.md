@@ -178,7 +178,7 @@ For BlockVote's planned national-ID gatekeeper, the cleanest path is a new imple
 
 Implementations of `initialVoiceCreditProxy/InitialVoiceCreditProxy.sol`. MACI calls `getVoiceCredits(address, bytes)` at signup to decide how many credits the voter gets.
 
-- **`ConstantInitialVoiceCreditProxy.sol`** — returns a fixed constant (deployed with `100`).
+- **`ConstantInitialVoiceCreditProxy.sol`** — returns a fixed constant (deployed with `99`).
 - The abstract base allows for per-address, token-balance-gated, or attestation-gated credit allocations. If voice credits ever need to be per-poll or per-voter, subclass this rather than editing `MACI.sol`.
 
 ---
