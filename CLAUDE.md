@@ -239,7 +239,7 @@ If CI still diverges, check which `@types/*` versions CI resolves vs. your `node
 |---|---|
 | Poll type restrictions only enforced in UI — contract callable directly, bypassing rules | 🔴 Security gap |
 | Admin = Coordinator (same account/key) — no separation of trust | 🟡 Medium |
-| Voice credit limit (100) not configurable per poll | 🟡 Medium |
+| Voice credit limit (99) not configurable per poll | 🟡 Medium |
 | No automated tests | 🟡 Medium |
 | Package vulnerabilities flagged by GitHub — triage needed | 🟡 Medium |
 | Local testnet only, public testnet not yet tested | 🟠 Low |
