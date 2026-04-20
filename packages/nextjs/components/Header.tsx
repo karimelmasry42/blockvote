@@ -38,22 +38,24 @@ export const HeaderMenuLinks = () => {
     functionName: "owner",
   });
 
-  const normalLinks = [
-    {
-      label: "Home",
-      href: "/",
-    },
-    ...(isConnected && isRegistered
-      ? [
-          {
-            label: "Polls",
-            href: "/polls",
-            icon: <ListBulletIcon className="h-4 w-4" />,
-          },
-        ]
-      : []),
-    ...(address === owner ? [adminPageLink, debugContractsLink] : []),
-  ];
+ const canSeePolls = isConnected && (isRegistered || address === owner);
+
+const normalLinks = [
+  {
+    label: "Home",
+    href: "/",
+  },
+  ...(canSeePolls
+    ? [
+        {
+          label: "Polls",
+          href: "/polls",
+          icon: <ListBulletIcon className="h-4 w-4" />,
+        },
+      ]
+    : []),
+  ...(address === owner ? [adminPageLink, debugContractsLink] : []),
+];
 
   return (
     <>
