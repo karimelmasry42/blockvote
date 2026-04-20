@@ -7,8 +7,8 @@ import { useAccount } from "wagmi";
 import { Bars3Icon, BugAntIcon, ListBulletIcon } from "@heroicons/react/24/outline";
 import RegisterButton from "~~/app/_components/RegisterButton";
 import { BlockVoteLogo } from "~~/components/assets/BlockVoteLogo";
-import { useAuthContext } from "~~/contexts/AuthContext";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
+import { useAuthContext } from "~~/contexts/AuthContext";
 import { useOutsideClick, useScaffoldContractRead } from "~~/hooks/scaffold-eth";
 
 type HeaderMenuLink = {
@@ -149,4 +149,5 @@ export const Header = () => {
       </div>
     </div>
   );
+
 };
