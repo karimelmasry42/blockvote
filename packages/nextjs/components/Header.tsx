@@ -8,6 +8,8 @@ import { Bars3Icon, BugAntIcon, ListBulletIcon } from "@heroicons/react/24/outli
 import { BlockVoteLogo } from "~~/components/assets/BlockVoteLogo";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useOutsideClick, useScaffoldContractRead } from "~~/hooks/scaffold-eth";
+import RegisterButton from "~~/app/_components/RegisterButton";
+import { useAuthContext } from "~~/contexts/AuthContext";
 
 type HeaderMenuLink = {
   label: string;
@@ -15,17 +17,22 @@ type HeaderMenuLink = {
   icon?: React.ReactNode;
 };
 
-export const menuLinks: HeaderMenuLink[] = [
-  {
-    label: "Home",
-    href: "/",
-  },
-  {
-    label: "Polls",
-    href: "/polls",
-    icon: <ListBulletIcon className="h-4 w-4" />,
-  },
-];
+const homeLink: HeaderMenuLink = {
+  label: "Home",
+  href: "/",
+};
+
+const pollsLink: HeaderMenuLink = {
+  label: "Polls",
+  href: "/polls",
+  icon: <ListBulletIcon className="h-4 w-4" />,
+};
+
+const registerLink: HeaderMenuLink = {
+  label: "Register to Vote",
+  href: "/",
+  icon: <ListBulletIcon className="h-4 w-4" />,
+};
 
 const debugContractsLink: HeaderMenuLink = {
   label: "Debug Contracts",
@@ -40,33 +47,58 @@ const adminPageLink: HeaderMenuLink = {
 
 export const HeaderMenuLinks = () => {
   const pathname = usePathname();
+  const { address, isConnected } = useAccount();
+  const { isRegistered } = useAuthContext();
 
-  const { address } = useAccount();
+  const { data: owner } = useScaffoldContractRead({
+    contractName: "MACIWrapper",
+    functionName: "owner",
+  });
 
-  const { data: owner } = useScaffoldContractRead({ contractName: "MACIWrapper", functionName: "owner" });
+  const normalLinks = [
+    {
+      label: "Home",
+      href: "/",
+    },
+    ...(isConnected && isRegistered
+      ? [
+          {
+            label: "Polls",
+            href: "/polls",
+            icon: <ListBulletIcon className="h-4 w-4" />,
+          },
+        ]
+      : []),
+    ...(address === owner ? [adminPageLink, debugContractsLink] : []),
+  ];
 
   return (
     <>
-      {[...menuLinks, ...(address === owner ? [adminPageLink, debugContractsLink] : [])].map(
-        ({ label, href, icon }) => {
-          const isActive = pathname === href;
-          return (
-            <li key={href}>
-              <Link
-                href={href}
-                passHref
-                prefetch={false}
-                className={`${
-                  isActive ? "bg-secondary shadow-md" : ""
-                } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col`}
-              >
-                {icon}
-                <span>{label}</span>
-              </Link>
-            </li>
-          );
-        },
-      )}
+      {normalLinks.map(({ label, href, icon }) => {
+        const isActive = pathname === href;
+
+        return (
+          <li key={href}>
+            <Link
+              href={href}
+              passHref
+              prefetch={false}
+              className={`${
+                isActive ? "bg-secondary shadow-md" : ""
+              } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col`}
+            >
+              {icon}
+              <span>{label}</span>
+            </Link>
+          </li>
+        );
+      })}
+
+      {isConnected && !isRegistered && address !== owner && (
+  <li className="flex items-center">
+    <RegisterButton label="Register to Vote" compact />
+  </li>
+)}
     </>
   );
 };
