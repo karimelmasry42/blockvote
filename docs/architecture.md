@@ -84,9 +84,11 @@ The root contract. Responsibilities:
 #### `Poll.sol`
 One instance is deployed per poll. Responsibilities:
 - Stores all encrypted vote messages submitted by voters
-- Enforces the poll's start and end time
+- Enforces the poll's **end** via the immutable `deployTime + duration` set at construction — `Poll` is live from the moment it is deployed
 - Supports vote changing (voters can submit new messages overriding old ones)
 - Stores the coordinator's public key
+
+> The `startTime` shown in the UI is tracked in `MACIWrapper` (see [smart-contracts.md](smart-contracts.md)); `Poll.sol` itself does not gate submissions on a start time.
 
 #### `MessageProcessor.sol` and `Tally.sol`
 Current MACI splits the old `PollProcessorAndTallyer` into two per-poll contracts, each deployed by its own factory (`MessageProcessorFactory`, `TallyFactory`):
@@ -100,9 +102,9 @@ Stores the **verification keys** for the zk-SNARK circuits. These keys are gener
 Controls who can register. Currently uses `FreeForAllGatekeeper` (anyone with a wallet can register). Planned replacement: a custom gatekeeper that validates national ID.
 
 #### `ConstantInitialVoiceCreditProxy.sol`
-Assigns an initial voice credit balance to each voter upon registration. Currently set to **100 credits** (hardcoded). This is the basis for weighted and quadratic voting.
+Assigns an initial voice credit balance to each voter upon registration. Currently set to **99 credits** (`DEFAULT_INITIAL_VOICE_CREDITS` in `deploy/00_initial_voice_credit_proxy.ts`; `deploy-config.json` uses the same value). This is the basis for weighted voting.
 
-> ⚠️ **Known Issue**: The 100-credit limit is enforced at the contract level by this proxy, but it is not configurable per-poll and is not clearly communicated to voters in the UI. Quadratic voting logic is currently handled by the frontend only and should be moved to contract-level enforcement.
+> ⚠️ **Known Issue**: The 99-credit limit is enforced at the contract level by this proxy, but it is not configurable per-poll and is not clearly communicated to voters in the UI. Quadratic voting is disabled at the wrapper level (see [smart-contracts.md](smart-contracts.md)).
 
 Contract addresses after deployment are saved to `packages/hardhat/contractAddresses.json`.
 
@@ -243,10 +245,10 @@ BlockVote supports three voting modes, configured per-poll at creation time:
 |---|---|---|
 | **Single candidate** | Voter picks exactly one option | 1 credit per vote |
 | **Multi-candidate** | Voter picks multiple options, one vote each | 1 credit per selection |
-| **Simple weighted** | Voter allocates credits across options freely | Up to 100 credits total |
+| **Simple weighted** | Voter allocates credits across options freely | Up to 99 credits total |
 
 
-> **Credit limit**: All voters receive 100 voice credits via `ConstantInitialVoiceCreditProxy`. This is enforced at the contract level. The limit is not currently configurable per-poll.
+> **Credit limit**: All voters receive 99 voice credits via `ConstantInitialVoiceCreditProxy` (`DEFAULT_INITIAL_VOICE_CREDITS = 99` in `packages/hardhat/deploy/00_initial_voice_credit_proxy.ts`). This is enforced at the contract level. The limit is not currently configurable per-poll.
 
 ---
 
@@ -319,9 +321,9 @@ Precedent: [blockexplorer/address/[address]/page.tsx](../packages/nextjs/app/blo
 | Issue | Severity | Notes |
 |---|---|---|
 | Admin = Coordinator (same key) | 🟡 Medium | Should be separated for security in production |
-| Voice credit limit (100) not configurable | 🟡 Medium | Hardcoded in `ConstantInitialVoiceCreditProxy` |
+| Voice credit limit (99) not configurable per-poll | 🟡 Medium | Hardcoded in `ConstantInitialVoiceCreditProxy` deployment args |
 | Local testnet only | 🟡 Medium | No public testnet deployment tested |
-| Admin address not verified on-chain | 🟠 Low-Medium | Admin role assumed from account index, not enforced |
+| Owner/admin operational hardening | 🟠 Low-Medium | Admin access is enforced on-chain via `MACIWrapper`'s `Ownable` owner, but production deployments should review owner management, role separation, and multisig use |
 
 ---
 

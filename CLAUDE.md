@@ -114,7 +114,7 @@ Output files go in `tally-output/` which is gitignored. Do not use `--output-dir
 ## MACI Key Concepts (Read Before Editing Contracts)
 
 - **Coordinator keypair**: Generated at deploy time, stored in `coordinatorKeyPair.json`. The coordinator decrypts votes — this key must never be exposed or committed. In the current setup, the deployer IS the coordinator.
-- **Voice credits**: Every voter gets 100 credits via `ConstantInitialVoiceCreditProxy`. This is enforced at the contract level.
+- **Voice credits**: Every voter gets 99 credits via `ConstantInitialVoiceCreditProxy` (`DEFAULT_INITIAL_VOICE_CREDITS = 99` in `packages/hardhat/deploy/00_initial_voice_credit_proxy.ts`). This is enforced at the contract level.
 - **Gatekeeper**: Currently `FreeForAllGatekeeper` (anyone can register). Planned replacement: national ID gatekeeper.
 - **Poll types**: The MACI contracts treat all votes as voice credit allocations — they do not distinguish between "single candidate" and "weighted" modes. Poll type logic currently lives in the frontend only. **This is a known security risk** — a malicious user can call the contract directly and bypass UI-enforced voting restrictions. See Known Issues.
 - **Vote changing**: MACI natively supports this via key switching (the last valid message from a voter wins). This is NOT a custom implementation — do not remove or reimplement this logic.
@@ -157,9 +157,9 @@ Confirmed changes (from Jira BLOCK project):
 |---|---|---|
 | Single candidate | ✅ Working | Voter picks exactly one option |
 | Multi-candidate | ✅ Working | Voter picks multiple options |
-| Simple weighted | ✅ Working | Voter allocates up to 100 credits freely |
+| Simple weighted | ✅ Working | Voter allocates up to 99 credits freely |
 
-**Security note**: The 100 voice credit limit is enforced by `ConstantInitialVoiceCreditProxy` at the contract level. Poll type restrictions (e.g., preventing a "single candidate" voter from allocating credits to multiple options) are NOT yet enforced at the contract level — this is a security gap that needs to be addressed.
+**Security note**: The 99 voice credit limit is enforced by `ConstantInitialVoiceCreditProxy` at the contract level. Poll type restrictions (e.g., preventing a "single candidate" voter from allocating credits to multiple options) are NOT yet enforced at the contract level — this is a security gap that needs to be addressed.
 
 ---
 

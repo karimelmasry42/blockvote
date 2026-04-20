@@ -4,14 +4,14 @@ Reference for every contract that participates in BlockVote's on-chain flow, wit
 
 ---
 
-## Summary table — deployed contracts
+## Summary table — deployed contracts and runtime components
 
-These are the contracts actually deployed on-chain by `yarn deploy` (see `packages/hardhat/deploy/`). Per-poll contracts (`Poll`, `MessageProcessor`, `Tally`) are deployed dynamically by the corresponding factories when `MACIWrapper.createPoll(...)` is called.
+This table covers the on-chain contracts involved in BlockVote's flow: contracts deployed directly by `yarn deploy` (see `packages/hardhat/deploy/`), inherited logic exposed at deployed addresses, and per-poll contracts deployed later by factories. In particular, `MACI` is **not** deployed as a separate instance by `yarn deploy` — its logic is inherited by `MACIWrapper` and lives at the `MACIWrapper` address. Per-poll contracts (`Poll`, `MessageProcessor`, `Tally`) are deployed dynamically by the corresponding factories when `MACIWrapper.createPoll(...)` is called.
 
 | Contract | Origin | Location | Role | Safe to edit? |
 |---|---|---|---|---|
 | `MACIWrapper` | Custom (BlockVote) | `packages/hardhat/contracts/maci-contracts/MACIWrapper.sol` | Deploys polls, stores app-level metadata, gates admin actions | ✅ Yes — app-layer only |
-| `MACI` | Upstream MACI (inherited by `MACIWrapper`) | `node_modules/maci-contracts/contracts/MACI.sol` | Signup registry; owns state tree; SNARK public-input source | 🚫 No |
+| `MACI` | Upstream MACI (inherited by `MACIWrapper`, not separately deployed) | `node_modules/maci-contracts/contracts/MACI.sol` | Core signup/state-tree/SNARK input logic exposed at the `MACIWrapper` address | 🚫 No |
 | `Poll` | Upstream, deployed by `PollFactory` per poll | `node_modules/maci-contracts/contracts/Poll.sol` | Accepts encrypted vote messages; owns message tree | 🚫 No |
 | `MessageProcessor` | Upstream, per poll | `node_modules/maci-contracts/contracts/MessageProcessor.sol` | Verifies `processMessages` proof | 🚫 No |
 | `Tally` | Upstream, per poll | `node_modules/maci-contracts/contracts/Tally.sol` | Verifies `tallyVotes` proof; commits tally | 🚫 No |
@@ -20,7 +20,7 @@ These are the contracts actually deployed on-chain by `yarn deploy` (see `packag
 | `TallyFactory` | Upstream MACI | `node_modules/maci-contracts/contracts/TallyFactory.sol` | Deploys `Tally` per poll | 🚫 No |
 | `VkRegistry` | Upstream MACI | `node_modules/maci-contracts/contracts/VkRegistry.sol` | Stores verifying keys derived from `.zkey` files | 🚫 No |
 | `Verifier` | Upstream MACI | `node_modules/maci-contracts/contracts/crypto/Verifier.sol` | Groth16 pairing check | 🚫 No |
-| `ConstantInitialVoiceCreditProxy` | Upstream MACI | `node_modules/maci-contracts/contracts/initialVoiceCreditProxy/ConstantInitialVoiceCreditProxy.sol` | Issues 100 voice credits per voter | 🚫 No (replace, don't edit) |
+| `ConstantInitialVoiceCreditProxy` | Upstream MACI | `node_modules/maci-contracts/contracts/initialVoiceCreditProxy/ConstantInitialVoiceCreditProxy.sol` | Issues 99 voice credits per voter (`DEFAULT_INITIAL_VOICE_CREDITS` in `deploy/00_initial_voice_credit_proxy.ts`) | 🚫 No (replace, don't edit) |
 | `FreeForAllGatekeeper` | Upstream MACI | `node_modules/maci-contracts/contracts/gatekeepers/FreeForAllGatekeeper.sol` | Signup gate (to be replaced by national-ID gatekeeper) | 🚫 No (replace, don't edit) |
 | `PoseidonT3` / `T4` / `T5` / `T6` | Upstream MACI | `node_modules/maci-contracts/contracts/crypto/PoseidonTN.sol` | Poseidon hash libraries (2/3/4/5 inputs) linked into MACI/Poll | 🚫 No |
 
@@ -56,7 +56,7 @@ The wrapper's pause/close/startTime flags are stored only on `MACIWrapper` — t
 | QV disable | 🟡 Partial | `createPoll` blocks `Mode.QV`, but inherited `MACI.deployPoll(...)` is public and ungated — an attacker can deploy a QV poll directly. |
 | `onlyOwner` on admin fns | ✅ Yes | Standard OZ Ownable. |
 | Duplicate pubkey on signup | ✅ Yes | `isPublicKeyRegistered` mapping. |
-| 100 voice credit cap | ✅ Yes | Enforced by `ConstantInitialVoiceCreditProxy`. |
+| 99 voice credit cap | ✅ Yes | Enforced by `ConstantInitialVoiceCreditProxy` (deployed with `DEFAULT_INITIAL_VOICE_CREDITS = 99`). |
 
 **Durable fix path**: introduce a `Poll` subclass whose `publishMessage` consults wrapper state, and register it through a custom `PollFactory` wired via `setConfig`. This keeps the circuits (`processMessages`, `tallyVotes`) and their verifiers untouched while closing the bypasses in one place. See [architecture.md](architecture.md) for how the factories are wired.
 
@@ -96,7 +96,7 @@ Stateless Groth16 pairing-check math. No storage, no admin. Editing this guarant
 
 ### `ConstantInitialVoiceCreditProxy`
 
-Returns a fixed voice-credit allocation per signup. BlockVote deploys this with the constant `100`. Enforced at signup time by `MACI` — there is no code path that lets a voter acquire more than 100 credits.
+Returns a fixed voice-credit allocation per signup. BlockVote deploys this with the constant `99` (`DEFAULT_INITIAL_VOICE_CREDITS` in `packages/hardhat/deploy/00_initial_voice_credit_proxy.ts`). Enforced at signup time by `MACI` — there is no code path that lets a voter acquire more than 99 credits.
 
 ### `FreeForAllGatekeeper`
 
