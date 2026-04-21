@@ -76,14 +76,12 @@ export function getCandidateOptions(
   } catch {
     // ignore malformed metadata and fall back to string options
   }
-  
-  
 
- return fallbackOptions.map(option => ({
-  name: option,
-  image: "",
-  description: "",
-}));
+  return fallbackOptions.map(option => ({
+    name: option,
+    image: "",
+    description: "",
+  }));
 }
 
 export function getPollWeightCap(
@@ -100,5 +98,3 @@ export function getPollWeightCap(
     return fallback;
   }
 }
-  
-

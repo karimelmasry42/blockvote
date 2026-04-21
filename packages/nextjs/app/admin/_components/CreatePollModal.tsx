@@ -37,7 +37,7 @@ export default function Example({
     startDate: formatDateTimeLocal(now),
     expiry: formatDateTimeLocal(defaultExpiry),
     pollType: PollType.NOT_SELECTED,
-    weightCap: 100,
+    weightCap: "100",
     options: [""],
     candidateDetails: [{ image: "", description: "" }],
   });
@@ -130,7 +130,7 @@ export default function Example({
   const metadata = JSON.stringify({
     version: 1,
     pollType: pollData.pollType,
-    weightCap: pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE ? pollData.weightCap : undefined,
+    weightCap: pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE ? Number(pollData.weightCap) : undefined,
     options: pollData.options.map((option, index) => ({
       name: option.trim(),
       image: pollData.candidateDetails[index]?.image?.trim() || "",
@@ -194,9 +194,10 @@ export default function Example({
       return;
     }
 
+    const parsedWeightCap = Number(pollData.weightCap);
     if (
       pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE &&
-      (!Number.isInteger(pollData.weightCap) || pollData.weightCap <= 0)
+      (!Number.isInteger(parsedWeightCap) || parsedWeightCap <= 0)
     ) {
       notification.error("Please enter a valid total weight cap", { showCloseButton: false });
       return;
@@ -296,13 +297,7 @@ export default function Example({
             step={1}
             className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
             value={pollData.weightCap}
-            onChange={e => {
-              const value = e.target.value;
-              setPollData(prev => ({
-                ...prev,
-                weightCap: value === "" ? 0 : Number(value),
-              }));
-            }}
+            onChange={e => setPollData(prev => ({ ...prev, weightCap: e.target.value }))}
           />
 
           <p className="mt-1 text-sm text-neutral-content/70">

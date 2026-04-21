@@ -1,4 +1,4 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-npx lint-staged
+node "$(git worktree list --porcelain | awk '/^worktree /{print $2; exit}')/node_modules/.bin/lint-staged" --verbose
