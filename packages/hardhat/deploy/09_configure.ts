@@ -47,10 +47,17 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
   await tx.wait(1);
 
   // Wire WrapperAwarePollFactory → MACIWrapper so the per-poll gate checks work.
+  // Guard makes the script idempotent on re-deploy.
   const pollFactory = await hre.ethers.getContract<WrapperAwarePollFactory>("PollFactory", deployer);
-  const setWrapperTx = await pollFactory.setWrapper(await maci.getAddress());
-  await setWrapperTx.wait(1);
-  console.log(`WrapperAwarePollFactory wired to MACIWrapper at ${await maci.getAddress()}`);
+  const maciAddress = await maci.getAddress();
+  const currentWrapper = await pollFactory.wrapper();
+  if (currentWrapper === hre.ethers.ZeroAddress) {
+    const setWrapperTx = await pollFactory.setWrapper(maciAddress);
+    await setWrapperTx.wait(1);
+    console.log(`WrapperAwarePollFactory wired to MACIWrapper at ${maciAddress}`);
+  } else {
+    console.log(`WrapperAwarePollFactory already wired to ${currentWrapper}, skipping setWrapper`);
+  }
 };
 
 export default deployContracts;

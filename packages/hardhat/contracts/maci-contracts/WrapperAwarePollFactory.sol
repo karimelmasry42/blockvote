@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { PollFactory } from "maci-contracts/contracts/PollFactory.sol";
 import { AccQueueQuinaryMaci } from "maci-contracts/contracts/trees/AccQueueQuinaryMaci.sol";
 import { IMACI } from "maci-contracts/contracts/interfaces/IMACI.sol";
@@ -17,19 +18,23 @@ import { WrapperAwarePoll } from "./WrapperAwarePoll.sol";
 /// Deployment order:
 ///   1. Deploy WrapperAwarePollFactory (wrapper address not yet known — leave unset).
 ///   2. Deploy MACIWrapper, passing this factory as _pollFactory.
-///   3. Call setWrapper(maciWrapperAddress) once to complete the wiring.
+///   3. Call setWrapper(maciWrapperAddress) once (owner-only) to complete the wiring.
 ///      After this point createPoll deploys WrapperAwarePoll instances that
 ///      call back into MACIWrapper for their gate checks.
-contract WrapperAwarePollFactory is PollFactory {
+contract WrapperAwarePollFactory is PollFactory, Ownable {
     error WrapperAlreadySet();
     error WrapperNotSet();
+    error WrapperZeroAddress();
 
     /// @notice Address of the MACIWrapper that owns this factory's polls.
     ///         Set once via setWrapper() after MACIWrapper is deployed.
     address public wrapper;
 
-    /// @notice Called once, immediately after MACIWrapper is deployed.
-    function setWrapper(address _wrapper) external {
+    constructor() payable Ownable(msg.sender) {}
+
+    /// @notice Called once by the owner immediately after MACIWrapper is deployed.
+    function setWrapper(address _wrapper) external onlyOwner {
+        if (_wrapper == address(0)) revert WrapperZeroAddress();
         if (wrapper != address(0)) revert WrapperAlreadySet();
         wrapper = _wrapper;
     }

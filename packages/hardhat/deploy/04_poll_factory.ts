@@ -37,8 +37,7 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
   await storage.register({
     id: EContracts.PollFactory,
-    // @ts-expect-error WrapperAwarePollFactory satisfies IPollFactory
-    contract: pollFactory,
+    contract: pollFactory as unknown,
     args: [],
     network: hre.network.name,
   });

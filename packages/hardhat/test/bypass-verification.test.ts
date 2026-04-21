@@ -1,13 +1,6 @@
 /**
  * Regression tests confirming the WrapperAwarePoll fix closes the three
  * previously-confirmed bypasses.
- *
- * Each test documents the original attack surface and asserts the fix works:
- *   - pausePoll  → direct Poll.publishMessage now reverts with PollIsPaused
- *   - closePoll  → direct Poll.publishMessage now reverts with VotingPeriodOver
- *   - startTime  → direct Poll.publishMessage now reverts with VotingNotStarted
- *   - real deadline → Poll.publishMessage still reverts with VotingPeriodOver
- *                     (this was always enforced; test confirms it still is)
  */
 
 import { expect } from "chai";
@@ -23,6 +16,7 @@ function freshEncPubKey() {
 
 const DUMMY_MESSAGE = { msgType: 1n, data: Array(10).fill(0n) };
 const NON_QV = 1;
+const START_OFFSET = 2;
 
 async function setup() {
   await deployments.fixture([
@@ -58,11 +52,25 @@ async function setup() {
 
 async function createTestPoll(
   maciWrapper: Awaited<ReturnType<typeof ethers.getContract>>,
-  startOffsetSecs = 2,
+  startOffsetSecs = START_OFFSET,
   durationSecs = 3600,
+  advancePastStart = true,
 ) {
   const now = await time.latest();
-  await maciWrapper.createPoll("Regression Poll", ["Option A", "Option B"], "", now + startOffsetSecs, durationSecs, NON_QV);
+  const tx = await maciWrapper.createPoll(
+    "Regression Poll",
+    ["Option A", "Option B"],
+    "",
+    now + startOffsetSecs,
+    durationSecs,
+    NON_QV,
+  );
+  await tx.wait();
+
+  if (advancePastStart) {
+    await time.increase(startOffsetSecs + 1);
+  }
+
   const pollData = await maciWrapper.fetchPoll(0n);
   return { pollAddress: pollData.pollContracts.poll as string };
 }
@@ -87,6 +95,7 @@ describe("MACIWrapper bypass regression (WrapperAwarePoll)", function () {
 
   it("closePoll bypass FIXED: publishMessage reverts with VotingPeriodOver after wrapper closes early", async function () {
     const { maciWrapper } = await setup();
+    // advancePastStart=true ensures we are past startTime before closing.
     const { pollAddress } = await createTestPoll(maciWrapper);
     const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
 
@@ -100,7 +109,7 @@ describe("MACIWrapper bypass regression (WrapperAwarePoll)", function () {
 
   it("startTime bypass FIXED: publishMessage reverts with VotingNotStarted before announced start", async function () {
     const { maciWrapper } = await setup();
-    const { pollAddress } = await createTestPoll(maciWrapper, 1800, 3600);
+    const { pollAddress } = await createTestPoll(maciWrapper, 1800, 3600, false);
     const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
 
     await expect(poll.publishMessage(DUMMY_MESSAGE, freshEncPubKey())).to.be.revertedWithCustomError(
@@ -112,7 +121,7 @@ describe("MACIWrapper bypass regression (WrapperAwarePoll)", function () {
   it("real deadline still enforced: publishMessage reverts with VotingPeriodOver after Poll duration", async function () {
     const { maciWrapper } = await setup();
     const duration = 3600;
-    const { pollAddress } = await createTestPoll(maciWrapper, 2, duration);
+    const { pollAddress } = await createTestPoll(maciWrapper, START_OFFSET, duration);
     const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
 
     await time.increase(duration + 1);

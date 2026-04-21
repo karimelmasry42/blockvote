@@ -6,9 +6,6 @@
  *   - closePoll  → direct Poll.publishMessage reverts with VotingPeriodOver
  *   - startTime  → direct Poll.publishMessage reverts with VotingNotStarted
  *   - within the valid window → publishMessage still succeeds
- *
- * Setup mirrors bypass-verification.test.ts but adds the setWrapper() call
- * in configure so WrapperAwarePoll can reach back into MACIWrapper.
  */
 
 import { expect } from "chai";
@@ -24,6 +21,7 @@ function freshEncPubKey() {
 
 const DUMMY_MESSAGE = { msgType: 1n, data: Array(10).fill(0n) };
 const NON_QV = 1;
+const START_OFFSET = 2; // seconds buffer so createPoll's block.timestamp <= startTime
 
 async function setup() {
   await deployments.fixture([
@@ -63,23 +61,33 @@ async function setup() {
   return { maciWrapper, signer };
 }
 
+/**
+ * Create a test poll and return the underlying Poll address.
+ * @param startOffsetSecs  Seconds from now before the wrapper considers the poll started.
+ *                         Must be ≥ START_OFFSET so createPoll's timestamp check passes.
+ * @param advancePastStart When true (default), advances EVM time past startTime so the
+ *                         poll is immediately active.  Pass false for startTime-gate tests.
+ */
 async function createTestPoll(
   maciWrapper: Awaited<ReturnType<typeof ethers.getContract>>,
-  startOffsetSecs = 2,
+  startOffsetSecs = START_OFFSET,
   durationSecs = 3600,
+  advancePastStart = true,
 ) {
   const now = await time.latest();
-  const startTime = now + startOffsetSecs;
-
   const tx = await maciWrapper.createPoll(
     "Fix Test Poll",
     ["Option A", "Option B"],
     "",
-    startTime,
+    now + startOffsetSecs,
     durationSecs,
     NON_QV,
   );
   await tx.wait();
+
+  if (advancePastStart) {
+    await time.increase(startOffsetSecs + 1);
+  }
 
   const pollData = await maciWrapper.fetchPoll(0n);
   return { pollAddress: pollData.pollContracts.poll as string };
@@ -113,6 +121,8 @@ describe("WrapperAwarePoll fix verification", function () {
 
   it("closePoll fix: publishMessage reverts with VotingPeriodOver after wrapper closes early", async function () {
     const { maciWrapper } = await setup();
+    // advancePastStart=true ensures we are past startTime before closing,
+    // so the revert reason is VotingPeriodOver (endTime), not VotingNotStarted.
     const { pollAddress } = await createTestPoll(maciWrapper);
     const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
 
@@ -126,8 +136,8 @@ describe("WrapperAwarePoll fix verification", function () {
 
   it("startTime fix: publishMessage reverts with VotingNotStarted before wrapper startTime", async function () {
     const { maciWrapper } = await setup();
-    // Start 30 minutes in the future.
-    const { pollAddress } = await createTestPoll(maciWrapper, 1800, 3600);
+    // advancePastStart=false keeps us before the announced start time.
+    const { pollAddress } = await createTestPoll(maciWrapper, 1800, 3600, false);
     const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
 
     await expect(poll.publishMessage(DUMMY_MESSAGE, freshEncPubKey())).to.be.revertedWithCustomError(

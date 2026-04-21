@@ -207,7 +207,10 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	function getPollStateByAddress(
 		address _poll
 	) external view returns (bool paused, uint256 startTime, uint256 endTime) {
-		PollData storage poll = _polls[getPollId(_poll)];
+		uint256 pollId = getPollId(_poll);
+		// pollIds defaults to 0 for unknown addresses; verify the stored poll address matches.
+		if (polls[pollId].poll != _poll) revert PollAddressDoesNotExist(_poll);
+		PollData storage poll = _polls[pollId];
 		return (poll.paused, poll.startTime, poll.endTime);
 	}
 
