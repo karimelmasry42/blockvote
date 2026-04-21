@@ -142,7 +142,8 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	) public onlyOwner {
 		// TODO: check if the number of options are more than limit
 		require(isQv == Mode.NON_QV, "Quadratic voting is disabled");
-
+		require(_options.length >= 2, "A poll must have at least 2 candidates");
+		
 		uint256 pollId = nextPollId;
 
 		deployPoll(
