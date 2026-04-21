@@ -84,10 +84,7 @@ export function getCandidateOptions(
   }));
 }
 
-export function getPollWeightCap(
-  metadata: string | undefined,
-  fallback = 100,
-): number {
+export function getPollWeightCap(metadata: string | undefined, fallback = 100): number {
   try {
     const parsed = JSON.parse(metadata || "{}") as PollMetadata;
 

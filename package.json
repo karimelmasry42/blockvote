@@ -39,7 +39,12 @@
   "packageManager": "yarn@3.2.3",
   "resolutions": {
     "axios": "1.13.5",
-    "circom_tester": "0.0.24"
+    "circom_tester": "0.0.24",
+    "elliptic": "6.6.1",
+    "semver": "7.7.4",
+    "underscore": "1.13.8",
+    "ws": "8.18.3",
+    "serialize-javascript": "7.0.5"
   },
   "devDependencies": {
     "husky": "^8.0.1",
