@@ -37,13 +37,7 @@ export const useFetchPolls = (currentPage = 1, limit = 10, reversed = true) => {
     args: [BigInt(currentPage), BigInt(limit), reversed],
   });
 
-  const [lastTimer, setLastTimer] = useState<NodeJS.Timer>();
-
   useEffect(() => {
-    if (lastTimer) {
-      clearInterval(lastTimer);
-    }
-
     if (!rawPolls) {
       setPolls([]);
       return;
@@ -69,8 +63,6 @@ export const useFetchPolls = (currentPage = 1, limit = 10, reversed = true) => {
       });
       setPolls(sortedPolls);
     }, 1000);
-
-    setLastTimer(interval);
 
     return () => {
       clearInterval(interval);
