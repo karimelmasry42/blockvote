@@ -50,32 +50,42 @@ export default function PollDetail({ id }: { id: bigint }) {
   }, [poll]);
 
   const usedWeight = useMemo(() => votes.reduce((sum, vote) => sum + vote.votes, 0), [votes]);
-  const remainingWeight = useMemo(() => Math.max(weightCap - usedWeight, 0), [weightCap, usedWeight]);
+  const remainingWeight = useMemo(() => weightCap - usedWeight, [weightCap, usedWeight]);
 
   const getVoteStorageKey = (pollId: bigint, voterIndex: bigint, pollAddress?: string) =>
     `poll-vote:${pollAddress?.toLowerCase() || "unknown"}:${pollId.toString()}:${voterIndex.toString()}`;
 
   const validateVotes = (voteList: { index: number; votes: number }[]) => {
-    let totalVotes = 0;
+    if (pollType === PollType.WEIGHTED_MULTIPLE_VOTE) {
+      let totalVotes = 0;
+
+      for (const vote of voteList) {
+        if (!Number.isInteger(vote.votes) || !Number.isFinite(vote.votes)) {
+          return { valid: false, reason: "Please enter integer weight values only." };
+        }
+
+        if (vote.votes < 0 || vote.votes > weightCap) {
+          return {
+            valid: false,
+            reason: `Each candidate weight must be between 0 and ${weightCap}.`,
+          };
+        }
+
+        totalVotes += vote.votes;
+        if (totalVotes > weightCap) {
+          return {
+            valid: false,
+            reason: `Total allocated weight must be ${weightCap} or less.`,
+          };
+        }
+      }
+
+      return { valid: true, reason: "" };
+    }
 
     for (const vote of voteList) {
-      if (!Number.isInteger(vote.votes) || !Number.isFinite(vote.votes)) {
-        return { valid: false, reason: "Please enter integer weight values only." };
-      }
-
-      if (vote.votes < 0 || vote.votes > weightCap) {
-        return {
-          valid: false,
-          reason: `Each candidate weight must be between 0 and ${weightCap}.`,
-        };
-      }
-
-      totalVotes += vote.votes;
-      if (totalVotes > weightCap) {
-        return {
-          valid: false,
-          reason: `Total allocated weight must be ${weightCap} or less.`,
-        };
+      if (vote.votes !== 0 && vote.votes !== 1) {
+        return { valid: false, reason: "Each vote must be 0 or 1." };
       }
     }
 
