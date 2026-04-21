@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useIsMounted } from "usehooks-ts";
 import { Address as AddressType, createWalletClient, http, parseEther } from "viem";
 import { hardhat } from "viem/chains";
 import { useNetwork } from "wagmi";
@@ -27,6 +28,7 @@ export const Faucet = () => {
   const [sendValue, setSendValue] = useState("");
 
   const { chain: ConnectedChain } = useNetwork();
+  const isMounted = useIsMounted();
 
   const faucetTxn = useTransactor(localWalletClient);
 
@@ -75,8 +77,9 @@ export const Faucet = () => {
     }
   };
 
-  // Render only on local chain
-  if (ConnectedChain?.id !== hardhat.id) {
+  // Render only on local chain. Guard with isMounted so SSR and first client render
+  // both produce null, preventing a hydration mismatch on ConnectedChain state.
+  if (!isMounted() || ConnectedChain?.id !== hardhat.id) {
     return null;
   }
 

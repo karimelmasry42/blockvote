@@ -16,10 +16,12 @@ import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
 const targetNetworks = getTargetNetworks();
 
-// We always want to have mainnet enabled (ENS resolution, ETH price, etc). But only once.
-const enabledChains = targetNetworks.find(network => network.id === 1)
-  ? targetNetworks
-  : [...targetNetworks, chains.mainnet];
+// Add mainnet for ENS resolution and ETH price, but skip it on local hardhat — ENS lookups
+// on test addresses cause the ENS reverse resolver to revert with "Internal error".
+const enabledChains =
+  targetNetworks.find(network => network.id === 1) || targetNetworks.every(n => n.id === chains.hardhat.id)
+    ? targetNetworks
+    : [...targetNetworks, chains.mainnet];
 
 /**
  * Chains for the app
