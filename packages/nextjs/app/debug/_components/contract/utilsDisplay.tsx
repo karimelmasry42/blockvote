@@ -29,7 +29,7 @@ export const displayTxResult = (
       } else {
         return "Ξ" + formatEther(displayContent);
       }
-    } catch (e) {
+    } catch {
       return "Ξ" + formatEther(displayContent);
     }
   }
