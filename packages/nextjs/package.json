@@ -27,9 +27,10 @@
     "circomkit": "^0.0.24",
     "circomlib": "^2.0.5",
     "daisyui": "4.5.0",
+    "eslint-config-next": "15.5.15",
     "maci-crypto": "2.2.0",
     "maci-domainobjs": "2.2.0",
-    "next": "^15.5.10",
+    "next": "15.5.15",
     "next-themes": "^0.2.1",
     "nprogress": "^0.2.0",
     "qrcode.react": "^3.1.0",
@@ -53,14 +54,13 @@
     "@typescript-eslint/eslint-plugin": "^5.39.0",
     "autoprefixer": "^10.4.12",
     "eslint": "^8.15.0",
-    "eslint-config-next": "^14.0.4",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.2.1",
     "postcss": "^8.5.6",
     "prettier": "^2.8.4",
     "tailwindcss": "^3.3.3",
     "type-fest": "^4.6.0",
-    "typescript": "^5.1.6",
+    "typescript": "^5.9.3",
     "vercel": "^32.4.1"
   }
 }
