@@ -250,7 +250,14 @@ export default function CreatePollModal({
 
     try {
       await writeAsync({
-        args: [pollData.title, optionNames, metadata, BigInt(startTimestamp), BigInt(durationSeconds), EMode.NON_QV] as const,
+        args: [
+          pollData.title,
+          optionNames,
+          metadata,
+          BigInt(startTimestamp),
+          BigInt(durationSeconds),
+          EMode.NON_QV,
+        ] as const,
       });
       refetchPolls();
       setOpen(false);
@@ -299,7 +306,11 @@ export default function CreatePollModal({
       {/* Start time */}
       <div className="mb-2 text-neutral-content font-medium">Start time</div>
       <div className="flex gap-2 mb-3">
-        <button type="button" className={tabBtn(pollData.startMode === "now")} onClick={() => setPollData(prev => ({ ...prev, startMode: "now" }))}>
+        <button
+          type="button"
+          className={tabBtn(pollData.startMode === "now")}
+          onClick={() => setPollData(prev => ({ ...prev, startMode: "now" }))}
+        >
           Start at poll creation
         </button>
         <button
@@ -388,7 +399,11 @@ export default function CreatePollModal({
 
       {/* Poll type */}
       <div className="mt-4 mb-2 text-neutral-content">Select the poll type</div>
-      <select className="select bg-secondary text-neutral w-full rounded-xl" value={pollData.pollType} onChange={handlePollTypeChange}>
+      <select
+        className="select bg-secondary text-neutral w-full rounded-xl"
+        value={pollData.pollType}
+        onChange={handlePollTypeChange}
+      >
         <option disabled value={PollType.NOT_SELECTED}>
           Select Poll Type
         </option>
@@ -408,7 +423,9 @@ export default function CreatePollModal({
             value={pollData.weightCap}
             onChange={e => setPollData(prev => ({ ...prev, weightCap: e.target.value }))}
           />
-          <p className="mt-1 text-sm text-neutral-content/70">Maximum total weight a voter can distribute across all candidates.</p>
+          <p className="mt-1 text-sm text-neutral-content/70">
+            Maximum total weight a voter can distribute across all candidates.
+          </p>
         </div>
       )}
 
