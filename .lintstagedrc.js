@@ -6,7 +6,9 @@ let mainWorktree = "";
 try {
   const lines = execSync("git worktree list --porcelain", { encoding: "utf-8" }).split("\n");
   const worktreeLine = lines.find(l => l.startsWith("worktree "));
-  if (worktreeLine) mainWorktree = worktreeLine.slice("worktree ".length).trim();
+  mainWorktree = worktreeLine
+    ? worktreeLine.slice("worktree ".length).trim()
+    : execSync("git rev-parse --show-toplevel", { encoding: "utf-8" }).trim();
 } catch {
   // fall through — cdPrefix will be empty and yarn runs from CWD
 }
