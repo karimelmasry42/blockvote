@@ -3,6 +3,7 @@
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { getAddress, isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Bars3Icon, BugAntIcon, ListBulletIcon } from "@heroicons/react/24/outline";
 import RegisterButton from "~~/app/_components/RegisterButton";
@@ -38,7 +39,10 @@ export const HeaderMenuLinks = () => {
     functionName: "owner",
   });
 
-  const canSeePolls = isConnected && (isRegistered || address === owner);
+  const isOwner =
+    !!address && !!owner && isAddress(address) && isAddress(owner) && getAddress(address) === getAddress(owner);
+
+  const canSeePolls = isConnected && (isRegistered || isOwner);
 
   const normalLinks = [
     {
@@ -54,7 +58,7 @@ export const HeaderMenuLinks = () => {
           },
         ]
       : []),
-    ...(address === owner ? [adminPageLink, debugContractsLink] : []),
+    ...(isOwner ? [adminPageLink, debugContractsLink] : []),
   ];
 
   return (
@@ -79,7 +83,7 @@ export const HeaderMenuLinks = () => {
         );
       })}
 
-      {isConnected && !isRegistered && address !== owner && (
+      {isConnected && !isRegistered && owner !== undefined && !isOwner && (
         <li className="flex items-center">
           <RegisterButton label="Register to Vote" compact />
         </li>
