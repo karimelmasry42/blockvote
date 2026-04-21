@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import RegisterButton from "./_components/RegisterButton";
@@ -12,6 +13,8 @@ import { useAuthContext } from "~~/contexts/AuthContext";
 const Home: NextPage = () => {
   const { isConnected } = useAccount();
   const { isRegistered } = useAuthContext();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <div className="flex flex-col flex-grow pt-12 pb-16">
@@ -32,7 +35,7 @@ const Home: NextPage = () => {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              {!isConnected ? (
+              {!mounted || !isConnected ? (
                 <RainbowKitCustomConnectButton />
               ) : !isRegistered ? (
                 <RegisterButton />

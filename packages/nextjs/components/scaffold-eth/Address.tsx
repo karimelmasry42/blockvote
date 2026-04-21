@@ -40,7 +40,7 @@ export const Address = ({ address, disableAddressLink, format, size = "base" }: 
 
   const { data: fetchedEns } = useEnsName({
     address: checkSumAddress,
-    enabled: isAddress(checkSumAddress ?? ""),
+    enabled: isAddress(checkSumAddress ?? "") && targetNetwork.id !== hardhat.id,
     chainId: 1,
   });
   const { data: fetchedEnsAvatar } = useEnsAvatar({
