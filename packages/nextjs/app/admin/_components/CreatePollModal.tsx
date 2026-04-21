@@ -195,7 +195,9 @@ export default function CreatePollModal({
     let durationSeconds: number;
 
     if (pollData.startMode === "now") {
-      startTimestamp = Math.round(Date.now() / 1000);
+      // Add 60s buffer so the transaction has time to mine before startTime.
+      // Without it, block.timestamp > startTimestamp by the time the tx lands.
+      startTimestamp = Math.round(Date.now() / 1000) + 60;
       if (pollData.endMode === "duration") {
         const mins = parseInt(pollData.durationMinutes);
         if (isNaN(mins) || mins < 1) {
