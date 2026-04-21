@@ -10,7 +10,6 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 import * as chains from "viem/chains";
 import { configureChains } from "wagmi";
-import { alchemyProvider } from "wagmi/providers/alchemy";
 import { publicProvider } from "wagmi/providers/public";
 import scaffoldConfig from "~~/scaffold.config";
 import { burnerWalletConfig } from "~~/services/web3/wagmi-burner/burnerWalletConfig";
@@ -29,12 +28,7 @@ const enabledChains = targetNetworks.find(network => network.id === 1)
  */
 export const appChains = configureChains(
   enabledChains,
-  [
-    alchemyProvider({
-      apiKey: scaffoldConfig.alchemyApiKey,
-    }),
-    publicProvider(),
-  ],
+  [publicProvider()],
   {
     // We might not need this checkout https://github.com/scaffold-eth/scaffold-eth-2/pull/45#discussion_r1024496359, will test and remove this before merging
     stallTimeout: 3_000,
