@@ -144,6 +144,7 @@ export default function CreatePollModal({
       const start = new Date(pollData.startDate);
       const expiry = new Date(pollData.expiry);
       if (isNaN(start.getTime()) || isNaN(expiry.getTime())) return true;
+      if (start.getTime() < Date.now() - 5000) return true;
       if (expiry.getTime() - start.getTime() < 60000) return true;
     } else if (pollData.endMode === "duration") {
       const mins = parseInt(pollData.durationMinutes);
@@ -151,6 +152,7 @@ export default function CreatePollModal({
     } else {
       const expiry = new Date(pollData.expiry);
       if (isNaN(expiry.getTime())) return true;
+      if (expiry.getTime() - Date.now() < 60000) return true;
     }
     return false;
   }, [pollData, validOptionsCount, hasBlankOptions]);

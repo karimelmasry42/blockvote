@@ -17,6 +17,7 @@ MAIN_NM="$MAIN_WORKTREE_PATH/packages/nextjs/node_modules"
 
 CREATED_SYMLINK=0
 if [ -L "$WORKTREE_NM" ]; then
+  # Replace any existing (possibly broken/stale) symlink with a fresh one.
   rm "$WORKTREE_NM"
   ln -s "$MAIN_NM" "$WORKTREE_NM"
   CREATED_SYMLINK=1
