@@ -3,11 +3,36 @@
 
 # In a git worktree, node_modules lives in the main worktree.
 MAIN_WORKTREE_PATH="$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -n 1)"
+CURRENT_WORKTREE_PATH="$(git rev-parse --show-toplevel)"
 
 if [ -z "$MAIN_WORKTREE_PATH" ]; then
-  MAIN_WORKTREE_PATH="$(git rev-parse --show-toplevel)"
+  MAIN_WORKTREE_PATH="$CURRENT_WORKTREE_PATH"
 fi
 
-cd packages/nextjs
-"$MAIN_WORKTREE_PATH/packages/nextjs/node_modules/.bin/next" lint --max-warnings=0 && \
-  "$MAIN_WORKTREE_PATH/packages/nextjs/node_modules/.bin/tsc" --noEmit --incremental
+# In a git worktree, packages/nextjs/node_modules does not exist.
+# Temporarily symlink it to the main worktree so Next.js finds TypeScript
+# without auto-installing, then run lint/tsc as normal from this worktree.
+WORKTREE_NM="$CURRENT_WORKTREE_PATH/packages/nextjs/node_modules"
+MAIN_NM="$MAIN_WORKTREE_PATH/packages/nextjs/node_modules"
+
+CREATED_SYMLINK=0
+if [ -L "$WORKTREE_NM" ]; then
+  # Replace any existing (possibly broken/stale) symlink with a fresh one.
+  rm "$WORKTREE_NM"
+  ln -s "$MAIN_NM" "$WORKTREE_NM"
+  CREATED_SYMLINK=1
+elif [ ! -e "$WORKTREE_NM" ]; then
+  ln -s "$MAIN_NM" "$WORKTREE_NM"
+  CREATED_SYMLINK=1
+fi
+
+cd "$CURRENT_WORKTREE_PATH/packages/nextjs"
+"$MAIN_NM/.bin/next" lint --max-warnings=0 && \
+  "$MAIN_NM/.bin/tsc" --noEmit --incremental
+EXIT_CODE=$?
+
+if [ "$CREATED_SYMLINK" = "1" ]; then
+  rm "$WORKTREE_NM"
+fi
+
+exit $EXIT_CODE
