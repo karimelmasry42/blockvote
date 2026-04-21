@@ -12,11 +12,9 @@ import * as chains from "viem/chains";
 import { configureChains } from "wagmi";
 import { publicProvider } from "wagmi/providers/public";
 import scaffoldConfig from "~~/scaffold.config";
-import { burnerWalletConfig } from "~~/services/web3/wagmi-burner/burnerWalletConfig";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
 const targetNetworks = getTargetNetworks();
-const { onlyLocalBurnerWallet } = scaffoldConfig;
 
 // We always want to have mainnet enabled (ENS resolution, ETH price, etc). But only once.
 const enabledChains = targetNetworks.find(network => network.id === 1)
@@ -49,13 +47,6 @@ const wallets = [
   braveWallet(walletsOptions),
   coinbaseWallet({ ...walletsOptions, appName: "scaffold-eth-2" }),
   rainbowWallet(walletsOptions),
-  ...(!targetNetworks.some(network => network.id !== chains.hardhat.id) || !onlyLocalBurnerWallet
-    ? [
-        burnerWalletConfig({
-          chains: appChains.chains.filter(chain => targetNetworks.map(({ id }) => id).includes(chain.id)),
-        }),
-      ]
-    : []),
   safeWallet({ ...walletsOptions }),
 ];
 
