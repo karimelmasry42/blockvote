@@ -1,4 +1,4 @@
-import { memo, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { CandidateOption, DEFAULT_CANDIDATE_IMAGE, PollType } from "~~/types/poll";
 
@@ -13,6 +13,7 @@ type VoteCardProps = {
   isInvalid: boolean;
   pollOpen: boolean;
   currentVotes?: number;
+  weightCap?: number;
 };
 
 const VoteCard = ({
@@ -26,14 +27,19 @@ const VoteCard = ({
   currentVotes,
   isChecked,
   isVoting,
+  weightCap = 100,
 }: VoteCardProps) => {
   const [votes, setVotes] = useState(currentVotes || 0);
   const votesFieldRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setVotes(currentVotes || 0);
+  }, [currentVotes]);
+
   return (
     <>
       <div className="bg-primary flex w-full px-3 py-3 rounded-lg items-start gap-3">
-        {pollOpen && (
+        {pollOpen && pollType !== PollType.WEIGHTED_MULTIPLE_VOTE && (
           <input
             type={pollType === PollType.SINGLE_VOTE ? "radio" : "checkbox"}
             className="mt-2 mr-1"
@@ -49,22 +55,10 @@ const VoteCard = ({
                   case PollType.MULTIPLE_VOTE:
                     onChange(true, 1);
                     break;
-                  case PollType.WEIGHTED_MULTIPLE_VOTE:
-                    onChange(true, votes);
-                    if (votes) {
-                      setIsInvalid(false);
-                    } else {
-                      setIsInvalid(true);
-                    }
-                    break;
                 }
               } else {
                 onChange(false, 0);
                 setIsInvalid(false);
-                setVotes(0);
-                if (votesFieldRef.current) {
-                  votesFieldRef.current.value = "";
-                }
               }
             }}
             name={pollType === PollType.SINGLE_VOTE ? "candidate-votes" : `candidate-votes-${index}`}
@@ -80,7 +74,7 @@ const VoteCard = ({
           unoptimized
         />
 
-        <div className={`flex-1 ${!pollOpen ? "ml-2" : ""}`}>
+        <div className={`flex-1 ${!pollOpen || pollType === PollType.WEIGHTED_MULTIPLE_VOTE ? "ml-2" : ""}`}>
           <div className="font-semibold">{candidate.name}</div>
           {candidate.description ? (
             <div className="text-sm opacity-80 mt-1 whitespace-pre-wrap">{candidate.description}</div>
@@ -93,33 +87,45 @@ const VoteCard = ({
           ref={votesFieldRef}
           type="number"
           className={
-            "border border-slate-600 bg-primary text-primary-content placeholder:text-accent-content placeholder:font-light rounded-lg px-2 py-2 ml-2 w-20" +
+            "border border-slate-600 bg-primary text-primary-content placeholder:text-accent-content placeholder:font-light rounded-lg px-2 py-2 ml-2 mt-2 w-28" +
             (isInvalid ? " border-red-500" : "")
           }
-          disabled={!isChecked}
-          placeholder="Votes"
+          disabled={isVoting}
+          placeholder="Weight"
           min={0}
-          max={100}
+          max={weightCap}
           step={1}
-          defaultValue={currentVotes || ""}
-          onChange={function (e) {
+          value={votes === 0 ? "" : votes}
+          onChange={e => {
             const rawValue = e.currentTarget.value;
+
+            if (rawValue === "") {
+              setVotes(0);
+              setIsInvalid(false);
+              onChange(false, 0);
+              return;
+            }
+
             const parsedValue = Number(rawValue);
-            const isEmpty = rawValue === "";
             const isInteger = Number.isInteger(parsedValue);
-            const isInRange = parsedValue >= 0 && parsedValue <= 100;
-            const isValid = !isEmpty && isInteger && Number.isFinite(parsedValue) && isInRange;
+            const isInRange = parsedValue >= 0 && parsedValue <= weightCap;
+            const isValid = Number.isFinite(parsedValue) && isInteger && isInRange;
 
             if (!isValid) {
-              setIsInvalid(isChecked);
+              setIsInvalid(true);
               setVotes(0);
-              onChange(isChecked, 0);
+              onChange(false, 0);
               return;
             }
 
             setIsInvalid(false);
             setVotes(parsedValue);
-            onChange(isChecked, parsedValue);
+
+            if (parsedValue === 0) {
+              onChange(false, 0);
+            } else {
+              onChange(true, parsedValue);
+            }
           }}
         />
       )}
@@ -138,6 +144,8 @@ export default memo(VoteCard, (prev, next) => {
     prev.pollOpen === next.pollOpen &&
     prev.pollType === next.pollType &&
     prev.isVoting === next.isVoting &&
+    prev.currentVotes === next.currentVotes &&
+    prev.weightCap === next.weightCap &&
     prev.onChange === next.onChange
   );
 });
