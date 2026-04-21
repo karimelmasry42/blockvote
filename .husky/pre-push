@@ -3,11 +3,13 @@
 
 # In a git worktree, node_modules lives in the main worktree.
 MAIN_WORKTREE_PATH="$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -n 1)"
+CURRENT_WORKTREE_PATH="$(git rev-parse --show-toplevel)"
 
 if [ -z "$MAIN_WORKTREE_PATH" ]; then
-  MAIN_WORKTREE_PATH="$(git rev-parse --show-toplevel)"
+  MAIN_WORKTREE_PATH="$CURRENT_WORKTREE_PATH"
 fi
 
-cd packages/nextjs
-"$MAIN_WORKTREE_PATH/packages/nextjs/node_modules/.bin/next" lint --max-warnings=0 && \
-  "$MAIN_WORKTREE_PATH/packages/nextjs/node_modules/.bin/tsc" --noEmit --incremental
+# cd to main worktree so Next.js finds node_modules; pass --dir / --project for the current worktree's files.
+cd "$MAIN_WORKTREE_PATH/packages/nextjs" && \
+  node_modules/.bin/next lint --max-warnings=0 --dir "$CURRENT_WORKTREE_PATH/packages/nextjs" && \
+  node_modules/.bin/tsc --noEmit --incremental --project "$CURRENT_WORKTREE_PATH/packages/nextjs/tsconfig.json"
