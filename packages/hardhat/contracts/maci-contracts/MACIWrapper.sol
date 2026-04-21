@@ -202,6 +202,18 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		pollId = pollIds[_poll];
 	}
 
+	/// @notice Called by WrapperAwarePoll on every publishMessage to enforce
+	///         wrapper-side pause, startTime, and early endTime at the contract level.
+	function getPollStateByAddress(
+		address _poll
+	) external view returns (bool paused, uint256 startTime, uint256 endTime) {
+		uint256 pollId = getPollId(_poll);
+		// pollIds defaults to 0 for unknown addresses; verify the stored poll address matches.
+		if (polls[pollId].poll != _poll) revert PollAddressDoesNotExist(_poll);
+		PollData storage poll = _polls[pollId];
+		return (poll.paused, poll.startTime, poll.endTime);
+	}
+
 	function updatePollTallyCID(
 		uint256 _pollId,
 		string calldata _tallyJsonCID

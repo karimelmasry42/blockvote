@@ -3,7 +3,7 @@ import { DeployFunction } from "hardhat-deploy/types";
 import fs from "fs";
 import { Keypair } from "maci-domainobjs";
 
-import { MACIWrapper, Verifier, VkRegistry } from "../typechain-types";
+import { MACIWrapper, Verifier, VkRegistry, WrapperAwarePollFactory } from "../typechain-types";
 
 function fetchOrCreateKeyPair(filePath: string) {
   let keypair: Keypair | null = null;
@@ -45,6 +45,19 @@ const deployContracts: DeployFunction = async function (hre: HardhatRuntimeEnvir
     await vkRegistry.getAddress(),
   );
   await tx.wait(1);
+
+  // Wire WrapperAwarePollFactory → MACIWrapper so the per-poll gate checks work.
+  // Guard makes the script idempotent on re-deploy.
+  const pollFactory = await hre.ethers.getContract<WrapperAwarePollFactory>("PollFactory", deployer);
+  const maciAddress = await maci.getAddress();
+  const currentWrapper = await pollFactory.wrapper();
+  if (currentWrapper === hre.ethers.ZeroAddress) {
+    const setWrapperTx = await pollFactory.setWrapper(maciAddress);
+    await setWrapperTx.wait(1);
+    console.log(`WrapperAwarePollFactory wired to MACIWrapper at ${maciAddress}`);
+  } else {
+    console.log(`WrapperAwarePollFactory already wired to ${currentWrapper}, skipping setWrapper`);
+  }
 };
 
 export default deployContracts;
