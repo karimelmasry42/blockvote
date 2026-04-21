@@ -15,6 +15,13 @@ fi
 WORKTREE_NM="$CURRENT_WORKTREE_PATH/packages/nextjs/node_modules"
 MAIN_NM="$MAIN_WORKTREE_PATH/packages/nextjs/node_modules"
 
+cleanup() {
+  if [ "$CREATED_SYMLINK" = "1" ] && [ -L "$WORKTREE_NM" ]; then
+    rm "$WORKTREE_NM"
+  fi
+}
+trap 'cleanup' EXIT INT TERM
+
 CREATED_SYMLINK=0
 if [ -L "$WORKTREE_NM" ]; then
   # Replace any existing (possibly broken/stale) symlink with a fresh one.
@@ -27,12 +34,10 @@ elif [ ! -e "$WORKTREE_NM" ]; then
 fi
 
 cd "$CURRENT_WORKTREE_PATH/packages/nextjs"
+set +e
 "$MAIN_NM/.bin/next" lint --max-warnings=0 && \
   "$MAIN_NM/.bin/tsc" --noEmit --incremental
 EXIT_CODE=$?
-
-if [ "$CREATED_SYMLINK" = "1" ]; then
-  rm "$WORKTREE_NM"
-fi
+set -e
 
 exit $EXIT_CODE
