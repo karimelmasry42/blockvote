@@ -9,18 +9,25 @@ if [ -z "$MAIN_WORKTREE_PATH" ]; then
   MAIN_WORKTREE_PATH="$CURRENT_WORKTREE_PATH"
 fi
 
-# cd to main worktree so Next.js finds node_modules (avoids TypeScript auto-install in worktrees).
-# Pass --dir for each default next-lint directory that exists in the current worktree's files.
-# Matches the default next lint scan scope (app, components, pages, lib, src).
-cd "$MAIN_WORKTREE_PATH/packages/nextjs"
+# In a git worktree, packages/nextjs/node_modules does not exist.
+# Temporarily symlink it to the main worktree so Next.js finds TypeScript
+# without auto-installing, then run lint/tsc as normal from this worktree.
+WORKTREE_NM="$CURRENT_WORKTREE_PATH/packages/nextjs/node_modules"
+MAIN_NM="$MAIN_WORKTREE_PATH/packages/nextjs/node_modules"
 
-LINT_DIRS=""
-for dir in app components pages lib src; do
-  if [ -d "$CURRENT_WORKTREE_PATH/packages/nextjs/$dir" ]; then
-    LINT_DIRS="$LINT_DIRS --dir $CURRENT_WORKTREE_PATH/packages/nextjs/$dir"
-  fi
-done
+CREATED_SYMLINK=0
+if [ ! -e "$WORKTREE_NM" ]; then
+  ln -s "$MAIN_NM" "$WORKTREE_NM"
+  CREATED_SYMLINK=1
+fi
 
-# shellcheck disable=SC2086
-node_modules/.bin/next lint --max-warnings=0 $LINT_DIRS && \
-  node_modules/.bin/tsc --noEmit --incremental --project "$CURRENT_WORKTREE_PATH/packages/nextjs/tsconfig.json"
+cd "$CURRENT_WORKTREE_PATH/packages/nextjs"
+"$MAIN_NM/.bin/next" lint --max-warnings=0 && \
+  "$MAIN_NM/.bin/tsc" --noEmit --incremental
+EXIT_CODE=$?
+
+if [ "$CREATED_SYMLINK" = "1" ]; then
+  rm "$WORKTREE_NM"
+fi
+
+exit $EXIT_CODE
