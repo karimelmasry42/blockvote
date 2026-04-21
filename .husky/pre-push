@@ -1,5 +1,13 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+# In a git worktree, node_modules lives in the main worktree.
+MAIN_WORKTREE_PATH="$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -n 1)"
+
+if [ -z "$MAIN_WORKTREE_PATH" ]; then
+  MAIN_WORKTREE_PATH="$(git rev-parse --show-toplevel)"
+fi
+
 cd packages/nextjs
-npx next lint --max-warnings=0 && npm exec tsc --noEmit --incremental
+"$MAIN_WORKTREE_PATH/packages/nextjs/node_modules/.bin/next" lint --max-warnings=0 && \
+  "$MAIN_WORKTREE_PATH/packages/nextjs/node_modules/.bin/tsc" --noEmit --incremental

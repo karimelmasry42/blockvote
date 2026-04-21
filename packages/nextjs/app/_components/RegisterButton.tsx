@@ -3,9 +3,11 @@ import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
 export default function RegisterButton({
   label = "Get Started",
+  generateLabel,
   compact = false,
 }: {
   label?: string;
+  generateLabel?: string;
   compact?: boolean;
 }) {
   const { keypair, isRegistered, generateKeypair } = useAuthContext();
@@ -39,7 +41,7 @@ export default function RegisterButton({
   if (!keypair) {
     return (
       <button className={buttonClass} onClick={generateKeypair}>
-        {label}
+        {generateLabel ?? label}
       </button>
     );
   }
