@@ -37,8 +37,13 @@
     "hardhat": "yarn workspace @se-2/hardhat hardhat"
   },
   "packageManager": "yarn@3.2.3",
+  "resolutions": {
+    "axios": "^1.13.5",
+    "circom_tester": "0.0.24"
+  },
   "devDependencies": {
     "husky": "^8.0.1",
-    "lint-staged": "^13.0.3"
+    "lint-staged": "^13.0.3",
+    "prettier": "^3.8.3"
   }
 }
