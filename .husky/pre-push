@@ -2,4 +2,4 @@
 . "$(dirname "$0")/_/husky.sh"
 
 cd packages/nextjs
-npx next lint --max-warnings=0 && npx tsc --noEmit --incremental
+npx next lint --max-warnings=0 && npm exec tsc --noEmit --incremental
