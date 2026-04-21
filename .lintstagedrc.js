@@ -1,4 +1,3 @@
-const path = require("path");
 const { execSync } = require("child_process");
 
 // Resolve the main worktree path so yarn commands run where node_modules live.
@@ -13,22 +12,16 @@ try {
 }
 const cdPrefix = mainWorktree ? `cd "${mainWorktree}" && ` : "";
 
-const buildNextEslintCommand = (filenames) =>
-  `${cdPrefix}yarn next:lint --fix --file ${filenames
-    .map((f) => path.relative(path.join("packages", "nextjs"), f))
-    .join(" --file ")}`;
+// Pass absolute paths so ESLint finds the correct files even when yarn runs from a different worktree.
+const buildNextEslintCommand = filenames =>
+  `${cdPrefix}yarn next:lint --fix --file ${filenames.join(" --file ")}`;
 
 const checkTypesNextCommand = () => `${cdPrefix}yarn next:check-types`;
 
-const buildHardhatEslintCommand = (filenames) =>
-  `${cdPrefix}yarn hardhat:lint-staged --fix ${filenames
-    .map((f) => path.relative(path.join("packages", "hardhat"), f))
-    .join(" ")}`;
+const buildHardhatEslintCommand = filenames =>
+  `${cdPrefix}yarn hardhat:lint-staged --fix ${filenames.join(" ")}`;
 
 module.exports = {
-  "packages/nextjs/**/*.{ts,tsx}": [
-    buildNextEslintCommand,
-    checkTypesNextCommand,
-  ],
+  "packages/nextjs/**/*.{ts,tsx}": [buildNextEslintCommand, checkTypesNextCommand],
   "packages/hardhat/**/*.{ts,tsx}": [buildHardhatEslintCommand],
 };

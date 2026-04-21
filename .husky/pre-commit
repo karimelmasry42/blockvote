@@ -1,10 +1,12 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+# In a git worktree, node_modules lives in the main worktree.
+# --shell enables cd && chaining so commands run from the correct worktree.
 MAIN_WORKTREE_PATH="$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -n 1)"
 
 if [ -z "$MAIN_WORKTREE_PATH" ]; then
   MAIN_WORKTREE_PATH="$(git rev-parse --show-toplevel)"
 fi
 
-node "$MAIN_WORKTREE_PATH/node_modules/.bin/lint-staged" --verbose
+node "$MAIN_WORKTREE_PATH/node_modules/.bin/lint-staged" --shell --verbose

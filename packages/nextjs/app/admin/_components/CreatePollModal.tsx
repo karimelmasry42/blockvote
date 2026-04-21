@@ -115,17 +115,18 @@ export default function Example({
       ? Math.round((expiryDateObj.getTime() - startDateObj.getTime()) / 1000)
       : null;
 
-  const validOptionsCount = pollData.options.map(option => option.trim()).filter(option => option !== "").length;
+  const optionNames = pollData.options.map(option => option.trim());
+  const validOptionsCount = optionNames.filter(option => option !== "").length;
+  const hasBlankOptions = optionNames.some(option => option === "");
 
   const isCreateDisabled =
     validOptionsCount < 2 ||
+    hasBlankOptions ||
     pollData.pollType === PollType.NOT_SELECTED ||
     !isStartDateValid ||
     !isExpiryDateValid ||
     startTimestamp === null ||
     duration === null;
-
-  const optionNames = pollData.options.map(option => option.trim());
 
   const metadata = JSON.stringify({
     version: 1,
