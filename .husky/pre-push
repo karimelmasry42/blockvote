@@ -9,7 +9,18 @@ if [ -z "$MAIN_WORKTREE_PATH" ]; then
   MAIN_WORKTREE_PATH="$CURRENT_WORKTREE_PATH"
 fi
 
-# cd to main worktree so Next.js finds node_modules; pass --dir / --project for the current worktree's files.
-cd "$MAIN_WORKTREE_PATH/packages/nextjs" && \
-  node_modules/.bin/next lint --max-warnings=0 --dir "$CURRENT_WORKTREE_PATH/packages/nextjs" && \
+# cd to main worktree so Next.js finds node_modules (avoids TypeScript auto-install in worktrees).
+# Pass --dir for each default next-lint directory that exists in the current worktree's files.
+# Matches the default next lint scan scope (app, components, pages, lib, src).
+cd "$MAIN_WORKTREE_PATH/packages/nextjs"
+
+LINT_DIRS=""
+for dir in app components pages lib src; do
+  if [ -d "$CURRENT_WORKTREE_PATH/packages/nextjs/$dir" ]; then
+    LINT_DIRS="$LINT_DIRS --dir $CURRENT_WORKTREE_PATH/packages/nextjs/$dir"
+  fi
+done
+
+# shellcheck disable=SC2086
+node_modules/.bin/next lint --max-warnings=0 $LINT_DIRS && \
   node_modules/.bin/tsc --noEmit --incremental --project "$CURRENT_WORKTREE_PATH/packages/nextjs/tsconfig.json"
