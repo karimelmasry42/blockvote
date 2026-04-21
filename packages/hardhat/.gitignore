@@ -25,3 +25,5 @@ tally.json
 tally-*.json
 tally-output/
 .claude/worktrees/
+
+*.log
