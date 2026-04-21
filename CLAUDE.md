@@ -14,6 +14,7 @@ Forked from: https://github.com/yashgo0018/maci-wrapper
 Full architecture: see `docs/architecture.md`
 Project overview (non-technical): see `docs/project-overview.md`
 Cryptographic systems: see `docs/cryptography.md`
+Smart contract reference: see `docs/smart-contracts.md`
 
 ---
 
@@ -108,14 +109,12 @@ yarn hardhat prove \
 
 Output files go in `tally-output/` which is gitignored. Do not use `--output-dir .` as that places files in `packages/hardhat/` where they could be committed accidentally.
 
-> ⚠️ **KNOWN BUG**: Step 2 currently fails with an "invalid file" error. Root cause unknown — likely related to zkey file paths, output directory config, or circuit parameter mismatch. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
-
 ---
 
 ## MACI Key Concepts (Read Before Editing Contracts)
 
 - **Coordinator keypair**: Generated at deploy time, stored in `coordinatorKeyPair.json`. The coordinator decrypts votes — this key must never be exposed or committed. In the current setup, the deployer IS the coordinator.
-- **Voice credits**: Every voter gets 100 credits via `ConstantInitialVoiceCreditProxy`. This is enforced at the contract level.
+- **Voice credits**: Every voter gets 99 credits via `ConstantInitialVoiceCreditProxy` (`DEFAULT_INITIAL_VOICE_CREDITS = 99` in `packages/hardhat/deploy/00_initial_voice_credit_proxy.ts`). This is enforced at the contract level.
 - **Gatekeeper**: Currently `FreeForAllGatekeeper` (anyone can register). Planned replacement: national ID gatekeeper.
 - **Poll types**: The MACI contracts treat all votes as voice credit allocations — they do not distinguish between "single candidate" and "weighted" modes. Poll type logic currently lives in the frontend only. **This is a known security risk** — a malicious user can call the contract directly and bypass UI-enforced voting restrictions. See Known Issues.
 - **Vote changing**: MACI natively supports this via key switching (the last valid message from a voter wins). This is NOT a custom implementation — do not remove or reimplement this logic.
@@ -137,7 +136,7 @@ Confirmed changes (from Jira BLOCK project):
 - Poll list sorted newest-first in both voter and admin views
 
 **Voting UI fixes**:
-- Quadratic vote controls greyed out when poll is single-candidate type
+- Quadratic voting disabled
 - Bug fix: user could navigate back to home page and re-enter a poll to vote again after already voting (BLOCK-16, now fixed)
 - Change vote button disappears when poll ends even if user stays on page
 - Unnecessary transaction no longer sent when user opens "change vote" but makes no changes
@@ -150,13 +149,6 @@ Confirmed changes (from Jira BLOCK project):
 **Results**:
 - Single-candidate result page simplified
 
-**Not yet done** (open Jira items):
-- Main page content still refers to MACI in places (BLOCK-29)
-- Null date input crash on poll creation (BLOCK-39)
-- Pinata JWT workflow not documented in README (BLOCK-42)
-- Identity verification not started (BLOCK-41)
-- Architecture diagram not created (BLOCK-26)
-
 ---
 
 ## Voting Types — Important Constraints
@@ -165,12 +157,9 @@ Confirmed changes (from Jira BLOCK project):
 |---|---|---|
 | Single candidate | ✅ Working | Voter picks exactly one option |
 | Multi-candidate | ✅ Working | Voter picks multiple options |
-| Simple weighted | ✅ Working | Voter allocates up to 100 credits freely |
-| Quadratic | 🚫 Must be disabled | Not appropriate for elections context |
+| Simple weighted | ✅ Working | Voter allocates up to 99 credits freely |
 
-**Quadratic voting must be disabled** — remove from UI and disable the contract path. It is designed for DAO token governance and is confusing/inappropriate for the election use case.
-
-**Security note**: The 100 voice credit limit is enforced by `ConstantInitialVoiceCreditProxy` at the contract level. Poll type restrictions (e.g., preventing a "single candidate" voter from allocating credits to multiple options) are NOT yet enforced at the contract level — this is a security gap that needs to be addressed.
+**Security note**: The 99 voice credit limit is enforced by `ConstantInitialVoiceCreditProxy` at the contract level. Poll type restrictions (e.g., preventing a "single candidate" voter from allocating credits to multiple options) are NOT yet enforced at the contract level — this is a security gap that needs to be addressed.
 
 ---
 
@@ -248,31 +237,21 @@ If CI still diverges, check which `@types/*` versions CI resolves vs. your `node
 
 | Issue | Severity |
 |---|---|
-| zk-SNARK proof generation fails (`yarn hardhat prove`) | 🔴 Critical |
-| Full tally flow (merge → prove → upload → results) not validated end-to-end (upload step fixed — see `/api/pinata/upload` route) | 🟡 Medium |
 | Poll type restrictions only enforced in UI — contract callable directly, bypassing rules | 🔴 Security gap |
 | Admin = Coordinator (same account/key) — no separation of trust | 🟡 Medium |
-| Voice credit limit (100) not configurable per poll | 🟡 Medium |
-| Quadratic voting not yet disabled | 🟡 Medium |
+| Voice credit limit (99) not configurable per poll | 🟡 Medium |
 | No automated tests | 🟡 Medium |
 | Package vulnerabilities flagged by GitHub — triage needed | 🟡 Medium |
 | Local testnet only, public testnet not yet tested | 🟠 Low |
-| Null poll dates crash on creation (BLOCK-39) | 🟠 Low |
 
 ---
 
 ## Current Priority Tasks (as of April 2026)
 
-1. 🔴 Fix zk-SNARK proof generation — debug `yarn hardhat prove` failure
-2. 🔴 Validate full tally flow end-to-end — merge → prove → upload → results
-3. 🔴 Investigate poll type enforcement — audit whether contract enforces poll type restrictions
-4. 🟡 Disable quadratic voting — remove from UI and contract path
-5. 🟡 Fix null date crash on poll creation (BLOCK-39)
-6. 🟡 Document Pinata JWT setup in README (BLOCK-42)
-7. 🟡 Write automated tests — contract unit tests (Hardhat/Chai) + frontend tests
-8. 🟡 Triage package vulnerabilities — separate upstream MACI issues from project issues
-9. 🟠 Test public testnet deployment (Sepolia)
-10. 🟠 Document and plan admin/coordinator role separation
+1. 🔴 Investigate poll type enforcement — audit whether contract enforces poll type restrictions
+2. 🟡 Triage package vulnerabilities — separate upstream MACI issues from project issues
+3. 🟠 Test public testnet deployment (Sepolia)
+4. 🟠 Document and plan admin/coordinator role separation
 
 ---
 

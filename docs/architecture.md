@@ -1,6 +1,8 @@
 # BlockVote — Technical Architecture
 
 > This document describes the system architecture of BlockVote, how its components interact, and the role of cryptographic primitives (MACI, zk-SNARKs) in the voting flow.
+>
+> For a per-contract reference (roles, edit-safety, known security gaps in the custom wrapper), see [smart-contracts.md](smart-contracts.md).
 
 ---
 
@@ -10,18 +12,18 @@ BlockVote is a decentralized application (dApp) composed of four main layers:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   Next.js Frontend                   │
-│         (Voter UI, Admin Dashboard, Results)         │
+│                   Next.js Frontend                  │
+│         (Voter UI, Admin Dashboard, Results)        │
 └──────────────────────┬──────────────────────────────┘
                        │ reads/writes via wagmi/viem
 ┌──────────────────────▼──────────────────────────────┐
-│              Ethereum Smart Contracts                │
-│     MACI · Poll · PollProcessorAndTallyer · etc.    │
+│              Ethereum Smart Contracts               │
+│     MACI · Poll · MessageProcessor · Tally · etc.   │
 └────────────┬──────────────────────┬─────────────────┘
-             │ Hardhat RPC           │ IPFS CID stored on-chain
+             │ Hardhat RPC          │ IPFS CID stored on-chain
 ┌────────────▼──────────┐  ┌────────▼────────────────┐
-│   Local Hardhat Node  │  │   IPFS via Pinata        │
-│   (dev testnet)       │  │   (images, tally files)  │
+│   Local Hardhat Node  │  │   IPFS via Pinata       │
+│   (dev testnet)       │  │   (tally files / JSON)  │
 └───────────────────────┘  └─────────────────────────┘
 ```
 
@@ -45,7 +47,7 @@ Key pages and their responsibilities:
 
 The frontend interacts with the blockchain via **wagmi** and **viem** hooks (injected by Scaffold-ETH 2). It reads contract state (polls, registration status, results) and sends signed transactions (register, vote, change vote).
 
-**IPFS integration**: Candidate images and descriptions are stored on IPFS via Pinata. The frontend reads the `NEXT_PUBLIC_PINATA_GATEWAY` env variable to construct IPFS URLs. The admin upload flow for tally results uses a server-side API route (`/api/pinata/upload`) to proxy uploads to Pinata, keeping the `PINATA_JWT` secret on the server.
+**IPFS integration**: The admin upload flow for tally results uses a server-side API route (`/api/pinata/upload`) to proxy uploads to Pinata, keeping the `PINATA_JWT` secret on the server. The frontend reads `NEXT_PUBLIC_PINATA_GATEWAY` to construct IPFS URLs when fetching tally JSON. Candidate images are stored as URLs in on-chain metadata (not uploaded by this app) — whether those URLs point to Pinata or arbitrary external hosts is up to the poll creator.
 
 Environment config: `packages/nextjs/.env.example`
 
@@ -61,7 +63,7 @@ Environment config: `packages/nextjs/.env.example`
 - Do not call wagmi hooks directly for contract interactions — use the scaffold-eth wrappers.
 
 **Poll data**:
-- `useFetchPolls` / `useFetchPoll` — fetch and normalise poll data from the chain. Poll metadata is stored on-chain in `MACIWrapper.PollData.metadata` as a JSON string, which the frontend parses directly. IPFS via Pinata is used for referenced assets such as candidate images and tally files, not for storing only a poll-metadata CID on-chain.
+- `useFetchPolls` / `useFetchPoll` — fetch and normalise poll data from the chain. Poll metadata is stored on-chain in `MACIWrapper.PollData.metadata` as a JSON string, which the frontend parses directly. The metadata contains candidate details (including image URLs) inline; only the tally JSON is uploaded to IPFS via Pinata.
 
 **UI library**: Tailwind CSS + DaisyUI component library. Use DaisyUI class names before writing custom CSS.
 
@@ -82,26 +84,27 @@ The root contract. Responsibilities:
 #### `Poll.sol`
 One instance is deployed per poll. Responsibilities:
 - Stores all encrypted vote messages submitted by voters
-- Enforces the poll's start and end time
+- Enforces the poll's **end** via the immutable `deployTime + duration` set at construction — `Poll` is live from the moment it is deployed
 - Supports vote changing (voters can submit new messages overriding old ones)
 - Stores the coordinator's public key
 
-#### `PollProcessorAndTallyer.sol` (PPT)
-Used after the poll closes. Responsibilities:
-- Processes batches of encrypted messages
-- Verifies the zk-SNARK proof submitted by the coordinator
-- Records the final tally on-chain once the proof is verified
+> The `startTime` shown in the UI is tracked in `MACIWrapper` (see [smart-contracts.md](smart-contracts.md)); `Poll.sol` itself does not gate submissions on a start time.
+
+#### `MessageProcessor.sol` and `Tally.sol`
+Current MACI splits the old `PollProcessorAndTallyer` into two per-poll contracts, each deployed by its own factory (`MessageProcessorFactory`, `TallyFactory`):
+- **`MessageProcessor`** — the coordinator calls `processMessages(...)`, which verifies the `ProcessMessages` zk-SNARK proof via `Verifier` + `VkRegistry` and advances the message-processing state.
+- **`Tally`** — once all messages are processed, the coordinator calls `tallyVotes(...)`, which verifies the `TallyVotes` zk-SNARK proof and records the final tally commitment on-chain.
 
 #### `VkRegistry.sol`
-Stores the **verification keys** for the zk-SNARK circuits. These keys are generated during deployment from the pre-compiled circuit parameter files (`.zkey` files). They are used by PPT to verify proofs on-chain.
+Stores the **verification keys** for the zk-SNARK circuits. These keys are generated during deployment from the pre-compiled circuit parameter files (`.zkey` files). `MessageProcessor` and `Tally` read from this registry (through `Verifier`) to validate proofs.
 
 #### Gatekeeper Contract
 Controls who can register. Currently uses `FreeForAllGatekeeper` (anyone with a wallet can register). Planned replacement: a custom gatekeeper that validates national ID.
 
 #### `ConstantInitialVoiceCreditProxy.sol`
-Assigns an initial voice credit balance to each voter upon registration. Currently set to **100 credits** (hardcoded). This is the basis for weighted and quadratic voting.
+Assigns an initial voice credit balance to each voter upon registration. Currently set to **99 credits** (`DEFAULT_INITIAL_VOICE_CREDITS` in `deploy/00_initial_voice_credit_proxy.ts`; `deploy-config.json` uses the same value). This is the basis for weighted voting.
 
-> ⚠️ **Known Issue**: The 100-credit limit is enforced at the contract level by this proxy, but it is not configurable per-poll and is not clearly communicated to voters in the UI. Quadratic voting logic is currently handled by the frontend only and should be moved to contract-level enforcement.
+> ⚠️ **Known Issue**: The 99-credit limit is enforced at the contract level by this proxy, but it is not configurable per-poll and is not clearly communicated to voters in the UI. Quadratic voting is disabled at the wrapper level (see [smart-contracts.md](smart-contracts.md)).
 
 Contract addresses after deployment are saved to `packages/hardhat/contractAddresses.json`.
 
@@ -145,28 +148,32 @@ In a naive on-chain voting system, all votes are public on the blockchain. This 
 Voter                    Blockchain                  Coordinator
   │                          │                            │
   ├─ Register ───────────────► MACI.signUp()              │
-  │  (submit MACI pubkey)     │                            │
+  │  (submit MACI pubkey)    │                            │
   │                          │                            │
-  ├─ Encrypt vote ────────────► Poll.publishMessage()      │
-  │  (ECDH shared key)        │  (encrypted msg stored)   │
+  ├─ Encrypt vote ────────────► Poll.publishMessage()     │
+  │  (ECDH shared key)       │  (encrypted msg stored)    │
   │                          │                            │
   │  [optional: change vote] │                            │
-  ├─ Encrypt new vote ────────► Poll.publishMessage()      │
+  ├─ Encrypt new vote ────────► Poll.publishMessage()     │
   │                          │                            │
   │         [poll ends]      │                            │
   │                          │                            │
-  │                 Admin runs:│                            │
-  │                  merge ───►                            │
+  │               Admin runs:│                            │
+  │                  merge ───►                           │
   │                          │                            │
   │                          │◄── prove (off-chain) ──────┤
   │                          │    (decrypt, tally,        │
   │                          │     generate zk proof)     │
   │                          │                            │
   │                          │◄── upload tally.json ──────┤
-  │                          │    PPT.verifyProof()        │
+  │                   Coordinator submits:│                │
+  │                          │◄── processMessages(...) ───┤
+  │                          │◄── tallyVotes(...) ────────┤
+  │                          │  (proofs verified on-chain │
+  │                          │   via Verifier+VkRegistry) │
   │                          │    (on-chain verification) │
   │                          │                            │
-  ├─ View results ◄───────────┤                            │
+  ├─ View results ◄──────────┤                            │
 ```
 
 #### Why Vote Changing Defeats Bribery
@@ -223,16 +230,10 @@ Output files go in `tally-output/` (gitignored) to prevent accidental commits.
 
 > **Local Hardhat chain timing**: The merge step checks the immutable `deployTime + duration` from `Poll.sol`, NOT the `endTime` in `MACIWrapper`. If the admin closes a poll early via the UI, MACI's merge task still waits for the original on-chain duration to elapse. On a local Hardhat node, block timestamps only advance when blocks are mined — use `yarn hardhat run scripts/advance-time.ts --network localhost` to force the clock forward.
 
-> ⚠️ **Known Issue**: The proof generation step (Step 2) currently fails with an "invalid file" error. Root cause not yet identified — suspected issue with zkey file paths or output directory configuration. This is a **critical bug** that must be resolved before the project can be considered functional. The upload step (Step 3) works correctly — uploads go through a server-side API route (`/api/pinata/upload`) with proper error handling and loading states.
-
 #### The Pinata/IPFS Role
-Pinata is used in two places:
 
-1. **Candidate metadata**: When creating a poll, candidate images and descriptions are uploaded to IPFS via Pinata. The returned IPFS CID (content hash) is stored on-chain. The frontend reads it back using the `NEXT_PUBLIC_PINATA_GATEWAY` URL.
+**Tally file**: After proof generation, the `tally.json` file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`). The IPFS CID is then submitted to the smart contract to publish results. Environment variable: `PINATA_JWT` (server-side only, never exposed to the browser).
 
-2. **Tally file**: After proof generation, the `tally.json` file is uploaded to IPFS via a server-side API route (`/api/pinata/upload`). The IPFS CID is then submitted to the smart contract to publish results. Environment variable: `PINATA_JWT` (server-side only, never exposed to the browser).
-
-Both use the same Pinata account and API key. The JWT is used for uploads; the Gateway URL is used for reads.
 
 ---
 
@@ -244,11 +245,10 @@ BlockVote supports three voting modes, configured per-poll at creation time:
 |---|---|---|
 | **Single candidate** | Voter picks exactly one option | 1 credit per vote |
 | **Multi-candidate** | Voter picks multiple options, one vote each | 1 credit per selection |
-| **Simple weighted** | Voter allocates credits across options freely | Up to 100 credits total |
+| **Simple weighted** | Voter allocates credits across options freely | Up to 99 credits total |
 
-> **Quadratic voting** (where cost = votes²) is currently implemented in the codebase but is planned for removal. It was designed for DAO token governance and is not appropriate for general elections. Its UI elements should be disabled/removed.
 
-> **Credit limit**: All voters receive 100 voice credits via `ConstantInitialVoiceCreditProxy`. This is enforced at the contract level. The limit is not currently configurable per-poll.
+> **Credit limit**: All voters receive 99 voice credits via `ConstantInitialVoiceCreditProxy` (`DEFAULT_INITIAL_VOICE_CREDITS = 99` in `packages/hardhat/deploy/00_initial_voice_credit_proxy.ts`). This is enforced at the contract level. The limit is not currently configurable per-poll.
 
 ---
 
@@ -320,14 +320,10 @@ Precedent: [blockexplorer/address/[address]/page.tsx](../packages/nextjs/app/blo
 
 | Issue | Severity | Notes |
 |---|---|---|
-| zk-SNARK proof generation fails | 🔴 Critical | `yarn hardhat prove` gives "invalid file" error |
 | Admin = Coordinator (same key) | 🟡 Medium | Should be separated for security in production |
-| Voice credit limit (100) not configurable | 🟡 Medium | Hardcoded in `ConstantInitialVoiceCreditProxy` |
-| Quadratic voting not yet disabled | 🟡 Medium | UI and contract logic still present |
-| No automated tests | 🟡 Medium | Manual testing only |
+| Voice credit limit (99) not configurable per-poll | 🟡 Medium | Hardcoded in `ConstantInitialVoiceCreditProxy` deployment args |
 | Local testnet only | 🟡 Medium | No public testnet deployment tested |
-| Null poll dates crash | 🟠 Low-Medium | BLOCK-39, input validation needed |
-| Admin address not verified on-chain | 🟠 Low-Medium | Admin role assumed from account index, not enforced |
+| Owner/admin operational hardening | 🟠 Low-Medium | Admin access is enforced on-chain via `MACIWrapper`'s `Ownable` owner, but production deployments should review owner management, role separation, and multisig use |
 
 ---
 
