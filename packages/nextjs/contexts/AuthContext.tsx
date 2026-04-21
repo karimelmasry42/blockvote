@@ -17,7 +17,7 @@ interface IAuthContext {
 export const AuthContext = createContext<IAuthContext>({} as IAuthContext);
 
 export default function AuthContextProvider({ children }: { children: React.ReactNode }) {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
   const [keypair, setKeyPair] = useState<Keypair | null>(null);
   const [stateIndex, setStateIndex] = useState<bigint | null>(null);
   const [signatureMessage, setSignatureMessage] = useState<string>("");
@@ -29,7 +29,7 @@ export default function AuthContextProvider({ children }: { children: React.Reac
   }, []);
 
   const generateKeypair = useCallback(() => {
-    if (!address) return;
+    if (!address || !isConnected || !signatureMessage) return;
 
     (async () => {
       try {
@@ -40,7 +40,7 @@ export default function AuthContextProvider({ children }: { children: React.Reac
         console.error(err);
       }
     })();
-  }, [address, signMessageAsync]);
+  }, [address, isConnected, signatureMessage, signMessageAsync]);
 
   useEffect(() => {
     setKeyPair(null);
