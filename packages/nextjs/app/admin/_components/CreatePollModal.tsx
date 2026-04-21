@@ -115,9 +115,7 @@ export default function Example({
       ? Math.round((expiryDateObj.getTime() - startDateObj.getTime()) / 1000)
       : null;
 
-  const validOptionsCount = pollData.options
-    .map(option => option.trim())
-    .filter(option => option !== "").length;
+  const validOptionsCount = pollData.options.map(option => option.trim()).filter(option => option !== "").length;
 
   const isCreateDisabled =
     validOptionsCount < 2 ||
