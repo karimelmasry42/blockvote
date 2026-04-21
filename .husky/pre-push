@@ -16,7 +16,11 @@ WORKTREE_NM="$CURRENT_WORKTREE_PATH/packages/nextjs/node_modules"
 MAIN_NM="$MAIN_WORKTREE_PATH/packages/nextjs/node_modules"
 
 CREATED_SYMLINK=0
-if [ ! -e "$WORKTREE_NM" ]; then
+if [ -L "$WORKTREE_NM" ]; then
+  rm "$WORKTREE_NM"
+  ln -s "$MAIN_NM" "$WORKTREE_NM"
+  CREATED_SYMLINK=1
+elif [ ! -e "$WORKTREE_NM" ]; then
   ln -s "$MAIN_NM" "$WORKTREE_NM"
   CREATED_SYMLINK=1
 fi
