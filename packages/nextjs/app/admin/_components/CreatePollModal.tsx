@@ -115,6 +115,16 @@ export default function Example({
       ? Math.round((expiryDateObj.getTime() - startDateObj.getTime()) / 1000)
       : null;
 
+  const validOptionsCount = pollData.options.map(option => option.trim()).filter(option => option !== "").length;
+
+  const isCreateDisabled =
+    validOptionsCount < 2 ||
+    pollData.pollType === PollType.NOT_SELECTED ||
+    !isStartDateValid ||
+    !isExpiryDateValid ||
+    startTimestamp === null ||
+    duration === null;
+
   const optionNames = pollData.options.map(option => option.trim());
 
   const metadata = JSON.stringify({
@@ -135,6 +145,13 @@ export default function Example({
   });
 
   async function onSubmit() {
+    const validOptions = pollData.options.map(option => option.trim()).filter(option => option !== "");
+
+    if (validOptions.length < 2) {
+      notification.error("A poll must have at least 2 candidates", { showCloseButton: false });
+      return;
+    }
+
     for (const option of pollData.options) {
       if (!option.trim()) {
         notification.error("Candidate name cannot be blank", { showCloseButton: false });
@@ -351,8 +368,9 @@ export default function Example({
       <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
         <button
           type="button"
-          className="inline-flex w-full justify-center rounded-md bg-primary text-primary-content px-3 py-2 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2"
+          className="inline-flex w-full justify-center rounded-md bg-primary text-primary-content px-3 py-2 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2 disabled:opacity-50 disabled:cursor-not-allowed"
           onClick={onSubmit}
+          disabled={isCreateDisabled}
         >
           Create
         </button>
