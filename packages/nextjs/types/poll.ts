@@ -16,6 +16,7 @@ export interface PollMetadata {
   version?: number;
   pollType?: PollType;
   options?: CandidateOption[];
+  weightCap?: number;
 }
 
 export interface RawPoll {
@@ -75,10 +76,29 @@ export function getCandidateOptions(
   } catch {
     // ignore malformed metadata and fall back to string options
   }
+  
+  
 
-  return fallbackOptions.map(option => ({
-    name: option,
-    image: "",
-    description: "",
-  }));
+ return fallbackOptions.map(option => ({
+  name: option,
+  image: "",
+  description: "",
+}));
 }
+
+export function getPollWeightCap(
+  metadata: string | undefined,
+  fallback = 100,
+): number {
+  try {
+    const parsed = JSON.parse(metadata || "{}") as PollMetadata;
+
+    const cap = Number(parsed.weightCap);
+
+    return Number.isInteger(cap) && cap > 0 ? cap : fallback;
+  } catch {
+    return fallback;
+  }
+}
+  
+

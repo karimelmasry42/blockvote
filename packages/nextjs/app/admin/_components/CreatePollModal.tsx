@@ -37,6 +37,7 @@ export default function Example({
     startDate: formatDateTimeLocal(now),
     expiry: formatDateTimeLocal(defaultExpiry),
     pollType: PollType.NOT_SELECTED,
+    weightCap: 100,
     options: [""],
     candidateDetails: [{ image: "", description: "" }],
   });
@@ -119,17 +120,20 @@ export default function Example({
   const metadata = JSON.stringify({
     version: 1,
     pollType: pollData.pollType,
+    weightCap: pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE ? pollData.weightCap : undefined,
     options: pollData.options.map((option, index) => ({
       name: option.trim(),
       image: pollData.candidateDetails[index]?.image?.trim() || "",
       description: pollData.candidateDetails[index]?.description?.trim() || "",
     })),
   });
+
   const { writeAsync } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "createPoll",
     args: [undefined, undefined, undefined, undefined, undefined, undefined] as const,
   });
+
   async function onSubmit() {
     for (const option of pollData.options) {
       if (!option.trim()) {
@@ -170,6 +174,14 @@ export default function Example({
 
     if (pollData.pollType === PollType.NOT_SELECTED) {
       notification.error("Please select a poll type", { showCloseButton: false });
+      return;
+    }
+
+    if (
+      pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE &&
+      (!Number.isInteger(pollData.weightCap) || pollData.weightCap <= 0)
+    ) {
+      notification.error("Please enter a valid total weight cap", { showCloseButton: false });
       return;
     }
 
@@ -256,6 +268,31 @@ export default function Example({
         <option value={PollType.MULTIPLE_VOTE}>Multiple Candidate Select</option>
         <option value={PollType.WEIGHTED_MULTIPLE_VOTE}>Weighted-Multiple Candidate Select</option>
       </select>
+
+      {pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE && (
+        <div className="mt-4">
+          <div className="mb-2 text-neutral-content">Total weight cap</div>
+
+          <input
+            type="number"
+            min={1}
+            step={1}
+            className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
+            value={pollData.weightCap}
+            onChange={e => {
+              const value = e.target.value;
+              setPollData(prev => ({
+                ...prev,
+                weightCap: value === "" ? 0 : Number(value),
+              }));
+            }}
+          />
+
+          <p className="mt-1 text-sm text-neutral-content/70">
+            Maximum total weight a voter can distribute across all candidates.
+          </p>
+        </div>
+      )}
 
       <div className="w-full h-[0.5px] bg-[#3647A4] shadow-2xl my-5" />
 

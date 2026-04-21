@@ -11,14 +11,20 @@ import VoteCard from "~~/components/card/VoteCard";
 import { useAuthContext } from "~~/contexts/AuthContext";
 import { useFetchPoll } from "~~/hooks/useFetchPoll";
 import { getPollStatus } from "~~/hooks/useFetchPolls";
-import { CandidateOption, DEFAULT_CANDIDATE_IMAGE, PollStatus, PollType, getCandidateOptions } from "~~/types/poll";
+import {
+  CandidateOption,
+  DEFAULT_CANDIDATE_IMAGE,
+  PollStatus,
+  PollType,
+  getCandidateOptions,
+  getPollWeightCap,
+} from "~~/types/poll";
 import { getDataFromPinata } from "~~/utils/pinata";
 import { notification } from "~~/utils/scaffold-eth";
 
 export default function PollDetail({ id }: { id: bigint }) {
   const { data: poll, error, isLoading } = useFetchPoll(id);
   const [pollType, setPollType] = useState(PollType.NOT_SELECTED);
-  const MAX_VOTE_CREDITS = 100;
 
   const { keypair, stateIndex } = useAuthContext();
 
@@ -38,6 +44,14 @@ export default function PollDetail({ id }: { id: bigint }) {
 
   const candidateOptions = useMemo(() => (poll ? getCandidateOptions(poll.metadata, poll.options) : []), [poll]);
 
+  const weightCap = useMemo(() => {
+    if (!poll) return 100;
+    return getPollWeightCap(poll.metadata, 100);
+  }, [poll]);
+
+  const usedWeight = useMemo(() => votes.reduce((sum, vote) => sum + vote.votes, 0), [votes]);
+  const remainingWeight = useMemo(() => Math.max(weightCap - usedWeight, 0), [weightCap, usedWeight]);
+
   const getVoteStorageKey = (pollId: bigint, voterIndex: bigint, pollAddress?: string) =>
     `poll-vote:${pollAddress?.toLowerCase() || "unknown"}:${pollId.toString()}:${voterIndex.toString()}`;
 
@@ -46,16 +60,22 @@ export default function PollDetail({ id }: { id: bigint }) {
 
     for (const vote of voteList) {
       if (!Number.isInteger(vote.votes) || !Number.isFinite(vote.votes)) {
-        return { valid: false, reason: "Please enter integer vote values only." };
+        return { valid: false, reason: "Please enter integer weight values only." };
       }
 
-      if (vote.votes < 0 || vote.votes > MAX_VOTE_CREDITS) {
-        return { valid: false, reason: "Each candidate allocation must be between 0 and 100." };
+      if (vote.votes < 0 || vote.votes > weightCap) {
+        return {
+          valid: false,
+          reason: `Each candidate weight must be between 0 and ${weightCap}.`,
+        };
       }
 
       totalVotes += vote.votes;
-      if (totalVotes > MAX_VOTE_CREDITS) {
-        return { valid: false, reason: "Total allocated votes must be 100 or less." };
+      if (totalVotes > weightCap) {
+        return {
+          valid: false,
+          reason: `Total allocated weight must be ${weightCap} or less.`,
+        };
       }
     }
 
@@ -381,7 +401,7 @@ export default function PollDetail({ id }: { id: bigint }) {
             </div>
 
             {!voted && pollType === PollType.WEIGHTED_MULTIPLE_VOTE && status === PollStatus.OPEN && (
-              <div className="text-sm font-semibold text-neutral-content">Credits: {MAX_VOTE_CREDITS}</div>
+              <div className="text-sm font-semibold text-neutral-content">Total weight cap: {weightCap}</div>
             )}
           </div>
 
@@ -395,6 +415,12 @@ export default function PollDetail({ id }: { id: bigint }) {
               {poll ? new Date(Number(poll.endTime) * 1000).toLocaleString() : "-"}
             </div>
           </div>
+
+          {pollType === PollType.WEIGHTED_MULTIPLE_VOTE && status === PollStatus.OPEN && !voted && (
+            <div className="mt-3 text-sm opacity-80">
+              Used weight: {usedWeight} / {weightCap} · Remaining: {remainingWeight}
+            </div>
+          )}
 
           {status === PollStatus.NOT_STARTED && (
             <div className="mt-4 rounded-xl border border-warning bg-warning/10 px-4 py-3 text-sm font-medium">
@@ -495,6 +521,7 @@ export default function PollDetail({ id }: { id: bigint }) {
                   isChecked={selectedIndexes.includes(index)}
                   currentVotes={votes.find(v => v.index === index)?.votes}
                   pollType={pollType}
+                  weightCap={weightCap}
                   onChange={(checked, updatedVotes) => voteUpdated(index, checked, updatedVotes)}
                   isInvalid={Boolean(isVotesInvalid[index])}
                   setIsInvalid={currentStatus =>
