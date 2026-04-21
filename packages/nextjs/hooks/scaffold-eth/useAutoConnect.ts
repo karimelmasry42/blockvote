@@ -1,8 +1,6 @@
-import { useEffectOnce, useLocalStorage, useReadLocalStorage } from "usehooks-ts";
-import { Chain, hardhat } from "viem/chains";
+import { useEffectOnce, useLocalStorage } from "usehooks-ts";
 import { Connector, useAccount, useConnect } from "wagmi";
 import scaffoldConfig from "~~/scaffold.config";
-import { burnerWalletId } from "~~/services/web3/wagmi-burner/BurnerConnector";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
 const SCAFFOLD_WALLET_STORAGE_KEY = "scaffoldEth2.wallet";
@@ -11,57 +9,34 @@ const WAGMI_WALLET_STORAGE_KEY = "wagmi.wallet";
 // ID of the SAFE connector instance
 const SAFE_ID = "safe";
 
-/**
- * This function will get the initial wallet connector (if any), the app will connect to
- * @param initialNetwork
- * @param previousWalletId
- * @param connectors
- * @returns
- */
 const getInitialConnector = (
-  initialNetwork: Chain,
   previousWalletId: string,
   connectors: Connector[],
 ): { connector: Connector | undefined; chainId?: number } | undefined => {
-  // Look for the SAFE connector instance and connect to it instantly if loaded in SAFE frame
+  // Auto-connect to SAFE instantly if loaded in a SAFE frame
   const safeConnectorInstance = connectors.find(connector => connector.id === SAFE_ID && connector.ready);
-
   if (safeConnectorInstance) {
     return { connector: safeConnectorInstance };
   }
 
-  const allowBurner = scaffoldConfig.onlyLocalBurnerWallet ? initialNetwork.id === hardhat.id : true;
-
-  if (!previousWalletId) {
-    // The user was not connected to a wallet
-    if (allowBurner && scaffoldConfig.walletAutoConnect) {
-      const connector = connectors.find(f => f.id === burnerWalletId);
-      return { connector, chainId: initialNetwork.id };
-    }
-  } else {
-    // the user was connected to wallet
-    if (scaffoldConfig.walletAutoConnect) {
-      if (previousWalletId === burnerWalletId && !allowBurner) {
-        return;
-      }
-
-      const connector = connectors.find(f => f.id === previousWalletId);
-      return { connector };
-    }
+  if (previousWalletId && scaffoldConfig.walletAutoConnect) {
+    const connector = connectors.find(f => f.id === previousWalletId);
+    return { connector };
   }
 
   return undefined;
 };
 
 /**
- * Automatically connect to a wallet/connector based on config and prior wallet
+ * Automatically reconnect to the previously used wallet on page load.
+ * New users see the Connect button; disconnected users stay disconnected.
  */
 export const useAutoConnect = (): void => {
-  const wagmiWalletValue = useReadLocalStorage<string>(WAGMI_WALLET_STORAGE_KEY);
-  const [walletId, setWalletId] = useLocalStorage<string>(SCAFFOLD_WALLET_STORAGE_KEY, wagmiWalletValue ?? "", {
+  const [, setWalletId] = useLocalStorage<string>(SCAFFOLD_WALLET_STORAGE_KEY, "", {
     initializeWithValue: false,
   });
   const connectState = useConnect();
+
   useAccount({
     onConnect({ connector }) {
       setWalletId(connector?.id ?? "");
@@ -73,7 +48,15 @@ export const useAutoConnect = (): void => {
   });
 
   useEffectOnce(() => {
-    const initialConnector = getInitialConnector(getTargetNetworks()[0], walletId, connectState.connectors);
+    // Read synchronously to avoid the initializeWithValue:false timing issue —
+    // the deferred state value may still be "" when this effect fires.
+    const storedWalletId =
+      typeof window !== "undefined"
+        ? JSON.parse(localStorage.getItem(SCAFFOLD_WALLET_STORAGE_KEY) ?? '""') ||
+          JSON.parse(localStorage.getItem(WAGMI_WALLET_STORAGE_KEY) ?? '""')
+        : "";
+
+    const initialConnector = getInitialConnector(storedWalletId, connectState.connectors);
 
     if (initialConnector?.connector) {
       connectState.connect({ connector: initialConnector.connector, chainId: initialConnector.chainId });
