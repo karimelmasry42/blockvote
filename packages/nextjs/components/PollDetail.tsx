@@ -515,23 +515,23 @@ export default function PollDetail({ id }: { id: bigint }) {
             {candidateOptions.map((candidate, index) => (
               <div className="pb-5 flex" key={index}>
                 <VoteCard
-                    pollOpen={status === PollStatus.OPEN}
-                    index={index}
-                    candidate={candidate}
-                    isChecked={selectedIndexes.includes(index)}
-                    currentVotes={votes.find(v => v.index === index)?.votes}
-                    pollType={pollType}
-                    weightCap={weightCap}
-                    onChange={(checked, updatedVotes) => voteUpdated(index, checked, updatedVotes)}
-                    isInvalid={Boolean(isVotesInvalid[index])}
-                    setIsInvalid={currentStatus =>
-                      setIsVotesInvalid(prev => ({
-                        ...prev,
-                        [index]: currentStatus,
-                      }))
-                    }
-                    isVoting={voting}
-                  />
+                  pollOpen={status === PollStatus.OPEN}
+                  index={index}
+                  candidate={candidate}
+                  isChecked={selectedIndexes.includes(index)}
+                  currentVotes={votes.find(v => v.index === index)?.votes}
+                  pollType={pollType}
+                  weightCap={weightCap}
+                  onChange={(checked, updatedVotes) => voteUpdated(index, checked, updatedVotes)}
+                  isInvalid={Boolean(isVotesInvalid[index])}
+                  setIsInvalid={currentStatus =>
+                    setIsVotesInvalid(prev => ({
+                      ...prev,
+                      [index]: currentStatus,
+                    }))
+                  }
+                  isVoting={voting}
+                />
               </div>
             ))}
 
