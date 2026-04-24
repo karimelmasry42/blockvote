@@ -23,6 +23,12 @@ const formatDateTimeLocal = (date: Date) => {
 type StartMode = "now" | "specific";
 type EndMode = "duration" | "specific";
 
+// Buffer added to start timestamps so the tx has time to mine before block.timestamp
+// catches up. Applied both to `startMode === "now"` (auto-buffer) and as a minimum
+// lead time for `startMode === "specific"` (validation). MACIWrapper.createPoll
+// requires `_startTime >= block.timestamp` at mining time.
+const START_TIME_BUFFER_SECONDS = 60;
+
 export default function CreatePollModal({
   show,
   setOpen,
@@ -195,9 +201,9 @@ export default function CreatePollModal({
     let durationSeconds: number;
 
     if (pollData.startMode === "now") {
-      // Add 60s buffer so the transaction has time to mine before startTime.
+      // Buffer so the transaction has time to mine before startTime.
       // Without it, block.timestamp > startTimestamp by the time the tx lands.
-      startTimestamp = Math.round(Date.now() / 1000) + 60;
+      startTimestamp = Math.round(Date.now() / 1000) + START_TIME_BUFFER_SECONDS;
       if (pollData.endMode === "duration") {
         const mins = parseInt(pollData.durationMinutes);
         if (isNaN(mins) || mins < 1) {
@@ -211,9 +217,11 @@ export default function CreatePollModal({
           notification.error("Please enter a valid end date", { showCloseButton: false });
           return;
         }
-        durationSeconds = Math.round((expiryDate.getTime() - Date.now()) / 1000);
+        // Compute duration relative to the buffered startTimestamp so the on-chain
+        // endTime (startTimestamp + duration) matches the user-selected expiry.
+        durationSeconds = Math.round(expiryDate.getTime() / 1000) - startTimestamp;
         if (durationSeconds < 60) {
-          notification.error("End time must be at least 1 minute from now", { showCloseButton: false });
+          notification.error("End time must be at least 1 minute after the start", { showCloseButton: false });
           return;
         }
       }
@@ -224,8 +232,12 @@ export default function CreatePollModal({
         notification.error("Please enter a valid start date", { showCloseButton: false });
         return;
       }
-      if (startDate.getTime() < Date.now() - 5000) {
-        notification.error("Start date must be now or in the future", { showCloseButton: false });
+      // Require a minimum lead time so the tx can mine before startTime.
+      // Picking a time only a few seconds in the future would otherwise revert.
+      if (startDate.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) {
+        notification.error(`Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`, {
+          showCloseButton: false,
+        });
         return;
       }
       if (isNaN(expiryDate.getTime())) {
