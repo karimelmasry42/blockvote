@@ -57,6 +57,13 @@ export const useScaffoldEventHistory = <
   const readEvents = async (fromBlock?: bigint) => {
     setIsLoading(true);
     try {
+      // The caller intentionally opted out — no event, no error state.
+      // Must come before the "contract not found" throw, otherwise a disabled
+      // hook still surfaces a config error in console.
+      if (!enabled) {
+        return;
+      }
+
       // While the deployed-contract lookup is still in flight, quietly skip —
       // the second useEffect below re-fires once loading completes.
       if (deployedContractLoading) {
@@ -68,10 +75,6 @@ export const useScaffoldEventHistory = <
       // instead of silently no-oping.
       if (!deployedContractData) {
         throw new Error(`Contract "${contractName}" not found on the current network`);
-      }
-
-      if (!enabled) {
-        throw new Error("Hook disabled");
       }
 
       const event = (deployedContractData.abi as Abi).find(
