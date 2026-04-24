@@ -29,6 +29,23 @@ type EndMode = "duration" | "specific";
 // requires `_startTime >= block.timestamp` at mining time.
 const START_TIME_BUFFER_SECONDS = 60;
 
+// Shared validation messages — referenced both by the inline field hints (shown
+// under the offending input) and by the onSubmit toasts so a user never sees
+// two different phrasings for the same underlying error.
+const MSG = {
+  needTwoCandidates: "A poll must have at least 2 candidates",
+  blankCandidate: "Candidate name cannot be blank",
+  selectPollType: "Please select a poll type",
+  invalidStartDate: "Please enter a valid start date",
+  startLead: `Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`,
+  invalidEndDate: "Please enter a valid end date",
+  endAfterStart: "End date must be after the start date",
+  endAfterStartOneMinute: "End time must be at least 1 minute after the start",
+  durationMin: "Poll duration must be at least 1 minute",
+  durationInvalid: "Please enter a valid duration (at least 1 minute)",
+  weightCapInvalid: "Please enter a valid total weight cap",
+} as const;
+
 export default function CreatePollModal({
   show,
   setOpen,
@@ -155,46 +172,48 @@ export default function CreatePollModal({
     if (pollData.startMode === "specific") {
       const start = new Date(pollData.startDate);
       if (isNaN(start.getTime())) {
-        startDateReason = "Please enter a valid start date";
+        startDateReason = MSG.invalidStartDate;
       } else if (start.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) {
-        startDateReason = `Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`;
+        startDateReason = MSG.startLead;
       }
 
       const expiry = new Date(pollData.expiry);
       if (isNaN(expiry.getTime())) {
-        endTimeReason = "Please enter a valid end date";
+        endTimeReason = MSG.invalidEndDate;
       } else if (!isNaN(start.getTime())) {
         if (expiry.getTime() <= start.getTime()) {
-          endTimeReason = "End date must be after the start date";
+          endTimeReason = MSG.endAfterStart;
         } else if (expiry.getTime() - start.getTime() < 60000) {
-          endTimeReason = "Poll duration must be at least 1 minute";
+          endTimeReason = MSG.durationMin;
         }
       }
 
       const mins = parseInt(pollData.durationMinutes);
       if (isNaN(mins) || mins < 1) {
-        durationReason = "Duration must be at least 1 minute";
+        durationReason = MSG.durationMin;
       }
     } else if (pollData.endMode === "duration") {
       const mins = parseInt(pollData.durationMinutes);
       if (isNaN(mins) || mins < 1) {
-        durationReason = "Please enter a valid duration (at least 1 minute)";
+        durationReason = MSG.durationInvalid;
       }
     } else {
       // "now" + specific expiry: effective start is Date.now() + BUFFER, and the
       // on-chain duration must be ≥ 60s, so expiry must be ≥ (BUFFER + 60)s away.
+      // The user-facing framing stays "1 minute after the start" (matching the
+      // onSubmit toast) since the buffer is an implementation detail.
       const expiry = new Date(pollData.expiry);
       if (isNaN(expiry.getTime())) {
-        endTimeReason = "Please enter a valid end date";
+        endTimeReason = MSG.invalidEndDate;
       } else if (expiry.getTime() - Date.now() < (START_TIME_BUFFER_SECONDS + 60) * 1000) {
-        endTimeReason = `End time must be at least ${START_TIME_BUFFER_SECONDS + 60} seconds from now`;
+        endTimeReason = MSG.endAfterStartOneMinute;
       }
     }
 
     let overall: string | null = null;
-    if (validOptionsCount < 2) overall = "Add at least 2 candidates";
-    else if (hasBlankOptions) overall = "Candidate names cannot be blank";
-    else if (pollData.pollType === PollType.NOT_SELECTED) overall = "Select a poll type";
+    if (validOptionsCount < 2) overall = MSG.needTwoCandidates;
+    else if (hasBlankOptions) overall = MSG.blankCandidate;
+    else if (pollData.pollType === PollType.NOT_SELECTED) overall = MSG.selectPollType;
     else overall = startDateReason || endTimeReason || durationReason;
 
     return {
@@ -228,17 +247,17 @@ export default function CreatePollModal({
   async function onSubmit() {
     const validOptions = pollData.options.map(o => o.trim()).filter(o => o !== "");
     if (validOptions.length < 2) {
-      notification.error("A poll must have at least 2 candidates", { showCloseButton: false });
+      notification.error(MSG.needTwoCandidates, { showCloseButton: false });
       return;
     }
     for (const option of pollData.options) {
       if (!option.trim()) {
-        notification.error("Candidate name cannot be blank", { showCloseButton: false });
+        notification.error(MSG.blankCandidate, { showCloseButton: false });
         return;
       }
     }
     if (pollData.pollType === PollType.NOT_SELECTED) {
-      notification.error("Please select a poll type", { showCloseButton: false });
+      notification.error(MSG.selectPollType, { showCloseButton: false });
       return;
     }
 
@@ -252,21 +271,21 @@ export default function CreatePollModal({
       if (pollData.endMode === "duration") {
         const mins = parseInt(pollData.durationMinutes);
         if (isNaN(mins) || mins < 1) {
-          notification.error("Please enter a valid duration (at least 1 minute)", { showCloseButton: false });
+          notification.error(MSG.durationInvalid, { showCloseButton: false });
           return;
         }
         durationSeconds = mins * 60;
       } else {
         const expiryDate = new Date(pollData.expiry);
         if (isNaN(expiryDate.getTime())) {
-          notification.error("Please enter a valid end date", { showCloseButton: false });
+          notification.error(MSG.invalidEndDate, { showCloseButton: false });
           return;
         }
         // Compute duration relative to the buffered startTimestamp so the on-chain
         // endTime (startTimestamp + duration) matches the user-selected expiry.
         durationSeconds = Math.round(expiryDate.getTime() / 1000) - startTimestamp;
         if (durationSeconds < 60) {
-          notification.error("End time must be at least 1 minute after the start", { showCloseButton: false });
+          notification.error(MSG.endAfterStartOneMinute, { showCloseButton: false });
           return;
         }
       }
@@ -274,28 +293,26 @@ export default function CreatePollModal({
       const startDate = new Date(pollData.startDate);
       const expiryDate = new Date(pollData.expiry);
       if (isNaN(startDate.getTime())) {
-        notification.error("Please enter a valid start date", { showCloseButton: false });
+        notification.error(MSG.invalidStartDate, { showCloseButton: false });
         return;
       }
       // Require a minimum lead time so the tx can mine before startTime.
       // Picking a time only a few seconds in the future would otherwise revert.
       if (startDate.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) {
-        notification.error(`Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`, {
-          showCloseButton: false,
-        });
+        notification.error(MSG.startLead, { showCloseButton: false });
         return;
       }
       if (isNaN(expiryDate.getTime())) {
-        notification.error("Please enter a valid end date", { showCloseButton: false });
+        notification.error(MSG.invalidEndDate, { showCloseButton: false });
         return;
       }
       if (expiryDate.getTime() <= startDate.getTime()) {
-        notification.error("End date must be after the start date", { showCloseButton: false });
+        notification.error(MSG.endAfterStart, { showCloseButton: false });
         return;
       }
       durationSeconds = Math.round((expiryDate.getTime() - startDate.getTime()) / 1000);
       if (durationSeconds < 60) {
-        notification.error("Poll duration must be at least 1 minute", { showCloseButton: false });
+        notification.error(MSG.durationMin, { showCloseButton: false });
         return;
       }
       startTimestamp = Math.round(startDate.getTime() / 1000);
@@ -304,7 +321,7 @@ export default function CreatePollModal({
     if (pollData.pollType === PollType.WEIGHTED_MULTIPLE_VOTE) {
       const parsedWeightCap = Number(pollData.weightCap);
       if (!Number.isInteger(parsedWeightCap) || parsedWeightCap <= 0) {
-        notification.error("Please enter a valid total weight cap", { showCloseButton: false });
+        notification.error(MSG.weightCapInvalid, { showCloseButton: false });
         return;
       }
     }
