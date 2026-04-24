@@ -1,10 +1,23 @@
 import { useEffectOnce, useLocalStorage } from "usehooks-ts";
 import { Connector, useAccount, useConnect } from "wagmi";
 import scaffoldConfig from "~~/scaffold.config";
-import { getTargetNetworks } from "~~/utils/scaffold-eth";
 
 const SCAFFOLD_WALLET_STORAGE_KEY = "scaffoldEth2.wallet";
 const WAGMI_WALLET_STORAGE_KEY = "wagmi.wallet";
+
+// Safely read a JSON-encoded string value from localStorage. Falls back to "" if
+// the key is missing, the value is not valid JSON, or SSR (no window).
+const safeReadStoredString = (key: string): string => {
+  if (typeof window === "undefined") return "";
+  const raw = localStorage.getItem(key);
+  if (raw == null) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed === "string" ? parsed : "";
+  } catch {
+    return "";
+  }
+};
 
 // ID of the SAFE connector instance
 const SAFE_ID = "safe";
@@ -51,10 +64,7 @@ export const useAutoConnect = (): void => {
     // Read synchronously to avoid the initializeWithValue:false timing issue —
     // the deferred state value may still be "" when this effect fires.
     const storedWalletId =
-      typeof window !== "undefined"
-        ? JSON.parse(localStorage.getItem(SCAFFOLD_WALLET_STORAGE_KEY) ?? '""') ||
-          JSON.parse(localStorage.getItem(WAGMI_WALLET_STORAGE_KEY) ?? '""')
-        : "";
+      safeReadStoredString(SCAFFOLD_WALLET_STORAGE_KEY) || safeReadStoredString(WAGMI_WALLET_STORAGE_KEY);
 
     const initialConnector = getInitialConnector(storedWalletId, connectState.connectors);
 

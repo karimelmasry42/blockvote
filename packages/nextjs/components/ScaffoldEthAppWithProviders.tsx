@@ -10,12 +10,15 @@ import { Header } from "~~/components/Header";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { ProgressBar } from "~~/components/scaffold-eth/ProgressBar";
 import AuthContextProvider from "~~/contexts/AuthContext";
-import { useNativeCurrencyPrice } from "~~/hooks/scaffold-eth";
+import { useAutoConnect, useNativeCurrencyPrice } from "~~/hooks/scaffold-eth";
 import { useGlobalState } from "~~/services/store/store";
 import { wagmiConfig } from "~~/services/web3/wagmiConfig";
 import { appChains } from "~~/services/web3/wagmiConnectors";
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
+  // Reconnect to the previously used wallet on page load. Must be called inside
+  // WagmiConfig so wagmi context is available.
+  useAutoConnect();
   const price = useNativeCurrencyPrice();
   const setNativeCurrencyPrice = useGlobalState(state => state.setNativeCurrencyPrice);
 

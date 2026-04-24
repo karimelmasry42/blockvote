@@ -30,8 +30,9 @@ const scaffoldConfig = {
 
   /**
    * Auto connect:
-   * 1. If the user was connected into a wallet before, on page reload reconnect automatically
-   * 2. If user is not connected to any wallet:  On reload, connect to burner wallet if burnerWallet.enabled is true && burnerWallet.onlyLocal is false
+   * 1. If the user was connected to a wallet before, on page reload reconnect automatically.
+   * 2. Otherwise, show the Connect button — new or disconnected users stay disconnected.
+   *    (Burner wallet support was removed — see PR #56.)
    */
   walletAutoConnect: true,
 } as const satisfies ScaffoldConfig;
