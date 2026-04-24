@@ -146,19 +146,23 @@ export default function CreatePollModal({
 
   const isCreateDisabled = useMemo(() => {
     if (validOptionsCount < 2 || hasBlankOptions || pollData.pollType === PollType.NOT_SELECTED) return true;
+    // Mirror onSubmit's timing rules so the button state matches the validation
+    // that will run on click — including the START_TIME_BUFFER_SECONDS lead time.
     if (pollData.startMode === "specific") {
       const start = new Date(pollData.startDate);
       const expiry = new Date(pollData.expiry);
       if (isNaN(start.getTime()) || isNaN(expiry.getTime())) return true;
-      if (start.getTime() < Date.now() - 5000) return true;
+      if (start.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) return true;
       if (expiry.getTime() - start.getTime() < 60000) return true;
     } else if (pollData.endMode === "duration") {
       const mins = parseInt(pollData.durationMinutes);
       if (isNaN(mins) || mins < 1) return true;
     } else {
+      // "now" + specific expiry: effective start is Date.now() + BUFFER, and the
+      // on-chain duration must be ≥ 60s, so expiry must be ≥ (BUFFER + 60)s away.
       const expiry = new Date(pollData.expiry);
       if (isNaN(expiry.getTime())) return true;
-      if (expiry.getTime() - Date.now() < 60000) return true;
+      if (expiry.getTime() - Date.now() < (START_TIME_BUFFER_SECONDS + 60) * 1000) return true;
     }
     return false;
   }, [pollData, validOptionsCount, hasBlankOptions]);

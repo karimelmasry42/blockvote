@@ -119,7 +119,9 @@ export const useScaffoldEventHistory = <
     } catch (e: any) {
       console.error(e);
       setEvents(undefined);
-      setError(e);
+      // `error` state is typed as string, so normalize whatever is thrown
+      // (Error instance, string, or other) into a consistent message.
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setIsLoading(false);
     }
