@@ -18,8 +18,11 @@ const targetNetworks = getTargetNetworks();
 
 // Add mainnet for ENS resolution and ETH price, but skip it on local hardhat — ENS lookups
 // on test addresses cause the ENS reverse resolver to revert with "Internal error".
+// `targetNetworks.length > 0 &&` guards against a vacuously-true `.every(...)` on an
+// empty array, which would otherwise drop mainnet AND leave enabledChains empty.
 const enabledChains =
-  targetNetworks.find(network => network.id === 1) || targetNetworks.every(n => n.id === chains.hardhat.id)
+  targetNetworks.find(network => network.id === chains.mainnet.id) ||
+  (targetNetworks.length > 0 && targetNetworks.every(n => n.id === chains.hardhat.id))
     ? targetNetworks
     : [...targetNetworks, chains.mainnet];
 
