@@ -100,15 +100,23 @@ export default function AuthContextProvider({ children }: { children: React.Reac
       const userKeyPair = new Keypair(new PrivKey(signature));
       saveStoredKeypair(address, userKeyPair);
       setKeyPair(userKeyPair);
-      // Kick an immediate refetch so the UI doesn't wait for a new Hardhat block
-      // (watch:true is block-gated; idle local chains would otherwise stall).
-      refetchIsRegistered();
       return userKeyPair;
     } catch (err) {
       console.error(err);
       return null;
     }
-  }, [address, isConnected, signatureMessage, signMessageAsync, refetchIsRegistered]);
+  }, [address, isConnected, signatureMessage, signMessageAsync]);
+
+  // Kick an immediate refetch whenever the keypair commits (fresh generate or
+  // rehydrate from storage). Calling refetchIsRegistered() synchronously after
+  // setKeyPair would fire against stale args because the read hook hasn't yet
+  // seen the new keypair. A useEffect keyed on `keypair` runs after React has
+  // reconciled, so the read hook's args already reflect the new pubkey.
+  // watch:true is block-gated; on an idle Hardhat this manual refetch is the
+  // only thing that gets the UI out of the loading state before the next block.
+  useEffect(() => {
+    if (keypair) refetchIsRegistered();
+  }, [keypair, refetchIsRegistered]);
 
   const chainId = scaffoldConfig.targetNetworks[0].id;
 
