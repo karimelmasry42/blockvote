@@ -1,14 +1,15 @@
 import { CurrencyAmount, Token } from "@uniswap/sdk-core";
 import { Pair, Route } from "@uniswap/v2-sdk";
 import { Address, createPublicClient, http, parseAbi } from "viem";
-import { hardhat } from "viem/chains";
-import { mainnet } from "wagmi";
-import scaffoldConfig from "~~/scaffold.config";
+import { hardhat, mainnet } from "viem/chains";
 import { ChainWithAttributes } from "~~/utils/scaffold-eth";
 
+// No explicit URL — viem falls back to the chain's public RPC. Alchemy was
+// dropped because it is geo-blocked in some regions and the placeholder API
+// key returns 403s on mainnet.
 const publicClient = createPublicClient({
   chain: mainnet,
-  transport: http(`${mainnet.rpcUrls.alchemy.http[0]}/${scaffoldConfig.alchemyApiKey}`),
+  transport: http(),
 });
 
 const ABI = parseAbi([
