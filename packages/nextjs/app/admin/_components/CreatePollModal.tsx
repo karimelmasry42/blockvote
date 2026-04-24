@@ -144,28 +144,69 @@ export default function CreatePollModal({
   const validOptionsCount = optionNames.filter(option => option !== "").length;
   const hasBlankOptions = optionNames.some(option => option === "");
 
-  const isCreateDisabled = useMemo(() => {
-    if (validOptionsCount < 2 || hasBlankOptions || pollData.pollType === PollType.NOT_SELECTED) return true;
-    // Mirror onSubmit's timing rules so the button state matches the validation
-    // that will run on click — including the START_TIME_BUFFER_SECONDS lead time.
+  // Mirror onSubmit's validation rules per-field so the UI can show the exact
+  // reason the Create button is disabled — both under the button and inline at
+  // the offending input — instead of silently blocking.
+  const validation = useMemo(() => {
+    let startDateReason: string | null = null;
+    let endTimeReason: string | null = null;
+    let durationReason: string | null = null;
+
     if (pollData.startMode === "specific") {
       const start = new Date(pollData.startDate);
+      if (isNaN(start.getTime())) {
+        startDateReason = "Please enter a valid start date";
+      } else if (start.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) {
+        startDateReason = `Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`;
+      }
+
       const expiry = new Date(pollData.expiry);
-      if (isNaN(start.getTime()) || isNaN(expiry.getTime())) return true;
-      if (start.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) return true;
-      if (expiry.getTime() - start.getTime() < 60000) return true;
+      if (isNaN(expiry.getTime())) {
+        endTimeReason = "Please enter a valid end date";
+      } else if (!isNaN(start.getTime())) {
+        if (expiry.getTime() <= start.getTime()) {
+          endTimeReason = "End date must be after the start date";
+        } else if (expiry.getTime() - start.getTime() < 60000) {
+          endTimeReason = "Poll duration must be at least 1 minute";
+        }
+      }
+
+      const mins = parseInt(pollData.durationMinutes);
+      if (isNaN(mins) || mins < 1) {
+        durationReason = "Duration must be at least 1 minute";
+      }
     } else if (pollData.endMode === "duration") {
       const mins = parseInt(pollData.durationMinutes);
-      if (isNaN(mins) || mins < 1) return true;
+      if (isNaN(mins) || mins < 1) {
+        durationReason = "Please enter a valid duration (at least 1 minute)";
+      }
     } else {
       // "now" + specific expiry: effective start is Date.now() + BUFFER, and the
       // on-chain duration must be ≥ 60s, so expiry must be ≥ (BUFFER + 60)s away.
       const expiry = new Date(pollData.expiry);
-      if (isNaN(expiry.getTime())) return true;
-      if (expiry.getTime() - Date.now() < (START_TIME_BUFFER_SECONDS + 60) * 1000) return true;
+      if (isNaN(expiry.getTime())) {
+        endTimeReason = "Please enter a valid end date";
+      } else if (expiry.getTime() - Date.now() < (START_TIME_BUFFER_SECONDS + 60) * 1000) {
+        endTimeReason = `End time must be at least ${START_TIME_BUFFER_SECONDS + 60} seconds from now`;
+      }
     }
-    return false;
+
+    let overall: string | null = null;
+    if (validOptionsCount < 2) overall = "Add at least 2 candidates";
+    else if (hasBlankOptions) overall = "Candidate names cannot be blank";
+    else if (pollData.pollType === PollType.NOT_SELECTED) overall = "Select a poll type";
+    else overall = startDateReason || endTimeReason || durationReason;
+
+    return {
+      startDate: startDateReason,
+      endTime: endTimeReason,
+      duration: durationReason,
+      overall,
+    };
   }, [pollData, validOptionsCount, hasBlankOptions]);
+
+  const isCreateDisabled = validation.overall !== null;
+  const fieldHint = "mt-1 text-xs text-red-500";
 
   const metadata = JSON.stringify({
     version: 1,
@@ -342,12 +383,15 @@ export default function CreatePollModal({
         </button>
       </div>
       {pollData.startMode === "specific" && (
-        <input
-          type="datetime-local"
-          className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none mb-3"
-          value={pollData.startDate}
-          onChange={e => handleStartDateChange(e.target.value)}
-        />
+        <div className="mb-3">
+          <input
+            type="datetime-local"
+            className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
+            value={pollData.startDate}
+            onChange={e => handleStartDateChange(e.target.value)}
+          />
+          {validation.startDate && <p className={fieldHint}>{validation.startDate}</p>}
+        </div>
       )}
 
       {/* End time */}
@@ -371,7 +415,37 @@ export default function CreatePollModal({
             </button>
           </div>
           {pollData.endMode === "duration" ? (
-            <div className="flex items-center gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-32 focus:outline-none"
+                  value={pollData.durationMinutes}
+                  onChange={e => handleDurationChange(e.target.value)}
+                />
+                <span className="text-neutral-content">minutes</span>
+              </div>
+              {validation.duration && <p className={fieldHint}>{validation.duration}</p>}
+            </div>
+          ) : (
+            <div>
+              <input
+                type="datetime-local"
+                className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
+                value={pollData.expiry}
+                onChange={e => handleExpiryChange(e.target.value)}
+              />
+              {validation.endTime && <p className={fieldHint}>{validation.endTime}</p>}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="flex items-center gap-3">
+              <label className="text-neutral-content w-36 shrink-0 text-sm">Duration</label>
               <input
                 type="number"
                 min={1}
@@ -380,39 +454,21 @@ export default function CreatePollModal({
                 value={pollData.durationMinutes}
                 onChange={e => handleDurationChange(e.target.value)}
               />
-              <span className="text-neutral-content">minutes</span>
+              <span className="text-neutral-content text-sm">minutes</span>
             </div>
-          ) : (
-            <input
-              type="datetime-local"
-              className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-full focus:outline-none"
-              value={pollData.expiry}
-              onChange={e => handleExpiryChange(e.target.value)}
-            />
-          )}
-        </>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <label className="text-neutral-content w-36 shrink-0 text-sm">Duration</label>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              className="border bg-secondary text-neutral rounded-xl px-4 py-2 w-32 focus:outline-none"
-              value={pollData.durationMinutes}
-              onChange={e => handleDurationChange(e.target.value)}
-            />
-            <span className="text-neutral-content text-sm">minutes</span>
+            {validation.duration && <p className={fieldHint}>{validation.duration}</p>}
           </div>
-          <div className="flex items-center gap-3">
-            <label className="text-neutral-content w-36 shrink-0 text-sm">Specific end time</label>
-            <input
-              type="datetime-local"
-              className="border bg-secondary text-neutral rounded-xl px-4 py-2 flex-1 focus:outline-none"
-              value={pollData.expiry}
-              onChange={e => handleExpiryChange(e.target.value)}
-            />
+          <div>
+            <div className="flex items-center gap-3">
+              <label className="text-neutral-content w-36 shrink-0 text-sm">Specific end time</label>
+              <input
+                type="datetime-local"
+                className="border bg-secondary text-neutral rounded-xl px-4 py-2 flex-1 focus:outline-none"
+                value={pollData.expiry}
+                onChange={e => handleExpiryChange(e.target.value)}
+              />
+            </div>
+            {validation.endTime && <p className={fieldHint}>{validation.endTime}</p>}
           </div>
         </div>
       )}
@@ -501,14 +557,17 @@ export default function CreatePollModal({
       </button>
 
       <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-        <button
-          type="button"
-          className="inline-flex w-full justify-center rounded-md bg-primary text-primary-content px-3 py-2 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:col-start-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          onClick={onSubmit}
-          disabled={isCreateDisabled}
-        >
-          Create
-        </button>
+        <div className="sm:col-start-2">
+          <button
+            type="button"
+            className="inline-flex w-full justify-center rounded-md bg-primary text-primary-content px-3 py-2 font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={onSubmit}
+            disabled={isCreateDisabled}
+          >
+            Create
+          </button>
+          {validation.overall && <p className={`${fieldHint} text-center`}>{validation.overall}</p>}
+        </div>
         <button
           type="button"
           className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:col-start-1 sm:mt-0"
