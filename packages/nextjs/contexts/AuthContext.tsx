@@ -29,7 +29,7 @@ const storageKeyFor = (address: string) => `${KEYPAIR_STORAGE_PREFIX}${address.t
 const loadStoredKeypair = (address: string | undefined): Keypair | null => {
   if (typeof window === "undefined" || !address) return null;
   try {
-    const raw = localStorage.getItem(storageKeyFor(address));
+    const raw = sessionStorage.getItem(storageKeyFor(address));
     if (!raw) return null;
     if (!PrivKey.isValidSerializedPrivKey(raw)) return null;
     return new Keypair(PrivKey.deserialize(raw));
@@ -41,9 +41,9 @@ const loadStoredKeypair = (address: string | undefined): Keypair | null => {
 const saveStoredKeypair = (address: string, keypair: Keypair) => {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(storageKeyFor(address), keypair.privKey.serialize());
+    sessionStorage.setItem(storageKeyFor(address), keypair.privKey.serialize());
   } catch {
-    // localStorage can throw in private browsing modes; degrade silently to in-memory only
+    // sessionStorage can throw in private browsing modes; degrade silently to in-memory only
   }
 };
 
