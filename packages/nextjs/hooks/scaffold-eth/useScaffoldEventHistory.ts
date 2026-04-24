@@ -57,9 +57,17 @@ export const useScaffoldEventHistory = <
   const readEvents = async (fromBlock?: bigint) => {
     setIsLoading(true);
     try {
-      if (!deployedContractData) {
-        setIsLoading(false);
+      // While the deployed-contract lookup is still in flight, quietly skip —
+      // the second useEffect below re-fires once loading completes.
+      if (deployedContractLoading) {
         return;
+      }
+
+      // Loading is done and we still have nothing — this is a genuine config
+      // error (contract not deployed to this network / wrong name). Surface it
+      // instead of silently no-oping.
+      if (!deployedContractData) {
+        throw new Error(`Contract "${contractName}" not found on the current network`);
       }
 
       if (!enabled) {

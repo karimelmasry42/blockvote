@@ -1,6 +1,7 @@
 import { CurrencyAmount, Token } from "@uniswap/sdk-core";
 import { Pair, Route } from "@uniswap/v2-sdk";
 import { Address, createPublicClient, http, parseAbi } from "viem";
+import { hardhat } from "viem/chains";
 import { mainnet } from "wagmi";
 import scaffoldConfig from "~~/scaffold.config";
 import { ChainWithAttributes } from "~~/utils/scaffold-eth";
@@ -17,7 +18,7 @@ const ABI = parseAbi([
 ]);
 
 export const fetchPriceFromUniswap = async (targetNetwork: ChainWithAttributes): Promise<number> => {
-  if (targetNetwork.id === 31337 /* hardhat */) {
+  if (targetNetwork.id === hardhat.id) {
     return 0;
   }
   if (
