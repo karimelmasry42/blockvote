@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuthContext } from "~~/contexts/AuthContext";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
@@ -14,6 +14,10 @@ export default function RegisterButton({
   const { keypair, isRegistered, isRegisteredLoaded, generateKeypair } = useAuthContext();
   const [isBusy, setIsBusy] = useState(false);
   const [autoRegisterPending, setAutoRegisterPending] = useState(false);
+  // Synchronous re-entry guard: prevents a second autoRegister() from kicking
+  // off if the effect re-runs (e.g. isRegistered flips mid-tx) before state
+  // updates from the first run have flushed.
+  const autoRegisterRunningRef = useRef(false);
 
   const { writeAsync } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
@@ -31,15 +35,40 @@ export default function RegisterButton({
   // After a fresh generateKeypair(), wait for the isRegistered read to resolve
   // against the new pubkey. If not already registered on-chain, fire signUp
   // automatically so a brand-new user only clicks once.
+  //
+  // isBusy is held from the moment the async autoRegister starts until after
+  // the tx resolves, so the button stays disabled across the full signature +
+  // tx flow — no window where a second click could double-submit.
   useEffect(() => {
     if (!autoRegisterPending) return;
     if (!keypair || !isRegisteredLoaded) return;
-    setAutoRegisterPending(false);
-    if (!isRegistered) {
-      register().catch(err => console.log(err));
-    }
-    // register's identity depends on writeAsync/keypair; not listing it here avoids
-    // re-triggering the effect after setAutoRegisterPending(false) lands.
+    if (autoRegisterRunningRef.current) return;
+    autoRegisterRunningRef.current = true;
+
+    let cancelled = false;
+    const autoRegister = async () => {
+      setIsBusy(true);
+      try {
+        if (!isRegistered) {
+          await register();
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        autoRegisterRunningRef.current = false;
+        if (!cancelled) {
+          setAutoRegisterPending(false);
+          setIsBusy(false);
+        }
+      }
+    };
+    autoRegister();
+
+    return () => {
+      cancelled = true;
+    };
+    // register's identity depends on writeAsync/keypair; not listing it here
+    // avoids re-triggering the effect after autoRegister clears state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRegisterPending, keypair, isRegisteredLoaded, isRegistered]);
 
