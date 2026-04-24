@@ -19,20 +19,20 @@ export const AuthContext = createContext<IAuthContext>({} as IAuthContext);
 
 // MACI private keys are deterministic from the wallet signature of "Login to <origin>".
 // Persisting the derived keypair saves a signature prompt on every refresh without
-// leaking anything the wallet wouldn't re-produce on demand.
-const KEYPAIR_STORAGE_KEY = "blockvote.maciKeypair";
+// leaking anything the wallet wouldn't re-produce on demand. Keys are scoped by
+// wallet address so switching wallets never overwrites another wallet's entry —
+// reconnecting an old wallet rehydrates instantly instead of re-prompting.
+const KEYPAIR_STORAGE_PREFIX = "blockvote.maciKeypair.";
 
-type StoredKeypair = { address: string; privKey: string };
+const storageKeyFor = (address: string) => `${KEYPAIR_STORAGE_PREFIX}${address.toLowerCase()}`;
 
 const loadStoredKeypair = (address: string | undefined): Keypair | null => {
   if (typeof window === "undefined" || !address) return null;
   try {
-    const raw = localStorage.getItem(KEYPAIR_STORAGE_KEY);
+    const raw = localStorage.getItem(storageKeyFor(address));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as StoredKeypair;
-    if (parsed?.address?.toLowerCase() !== address.toLowerCase()) return null;
-    if (!PrivKey.isValidSerializedPrivKey(parsed.privKey)) return null;
-    return new Keypair(PrivKey.deserialize(parsed.privKey));
+    if (!PrivKey.isValidSerializedPrivKey(raw)) return null;
+    return new Keypair(PrivKey.deserialize(raw));
   } catch {
     return null;
   }
@@ -41,19 +41,9 @@ const loadStoredKeypair = (address: string | undefined): Keypair | null => {
 const saveStoredKeypair = (address: string, keypair: Keypair) => {
   if (typeof window === "undefined") return;
   try {
-    const payload: StoredKeypair = { address: address.toLowerCase(), privKey: keypair.privKey.serialize() };
-    localStorage.setItem(KEYPAIR_STORAGE_KEY, JSON.stringify(payload));
+    localStorage.setItem(storageKeyFor(address), keypair.privKey.serialize());
   } catch {
     // localStorage can throw in private browsing modes; degrade silently to in-memory only
-  }
-};
-
-const clearStoredKeypair = () => {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.removeItem(KEYPAIR_STORAGE_KEY);
-  } catch {
-    // ignore
   }
 };
 
@@ -71,8 +61,10 @@ export default function AuthContextProvider({ children }: { children: React.Reac
   }, []);
 
   // Hydrate / clear keypair in response to address changes.
-  // - undefined → address (page load or reconnect): try rehydrating from storage
-  // - addressA  → addressB (wallet switch): drop both in-memory and stored keypair
+  // - undefined → address (page load or reconnect): rehydrate from storage
+  // - addressA  → addressB (wallet switch): drop in-memory; per-address storage
+  //   entries are independent, so B's entry rehydrates if present and A's is
+  //   preserved for when A reconnects
   // - address   → undefined (disconnect): drop in-memory but keep storage so reconnect is instant
   useEffect(() => {
     const prev = prevAddressRef.current;
@@ -84,7 +76,6 @@ export default function AuthContextProvider({ children }: { children: React.Reac
     }
 
     if (prev && prev.toLowerCase() !== address.toLowerCase()) {
-      clearStoredKeypair();
       setKeyPair(null);
     }
 
