@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Keypair, PrivKey } from "maci-domainobjs";
 import { useAccount, useSignMessage } from "wagmi";
 import deployedContracts from "~~/contracts/deployedContracts";
@@ -9,18 +9,60 @@ import scaffoldConfig from "~~/scaffold.config";
 
 interface IAuthContext {
   isRegistered: boolean;
+  isRegisteredLoaded: boolean;
   keypair: Keypair | null;
   stateIndex: bigint | null;
-  generateKeypair: () => void;
+  generateKeypair: () => Promise<Keypair | null>;
 }
 
 export const AuthContext = createContext<IAuthContext>({} as IAuthContext);
+
+// MACI private keys are deterministic from the wallet signature of "Login to <origin>".
+// Persisting the derived keypair saves a signature prompt on every refresh without
+// leaking anything the wallet wouldn't re-produce on demand.
+const KEYPAIR_STORAGE_KEY = "blockvote.maciKeypair";
+
+type StoredKeypair = { address: string; privKey: string };
+
+const loadStoredKeypair = (address: string | undefined): Keypair | null => {
+  if (typeof window === "undefined" || !address) return null;
+  try {
+    const raw = localStorage.getItem(KEYPAIR_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredKeypair;
+    if (parsed?.address?.toLowerCase() !== address.toLowerCase()) return null;
+    if (!PrivKey.isValidSerializedPrivKey(parsed.privKey)) return null;
+    return new Keypair(PrivKey.deserialize(parsed.privKey));
+  } catch {
+    return null;
+  }
+};
+
+const saveStoredKeypair = (address: string, keypair: Keypair) => {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: StoredKeypair = { address: address.toLowerCase(), privKey: keypair.privKey.serialize() };
+    localStorage.setItem(KEYPAIR_STORAGE_KEY, JSON.stringify(payload));
+  } catch {
+    // localStorage can throw in private browsing modes; degrade silently to in-memory only
+  }
+};
+
+const clearStoredKeypair = () => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(KEYPAIR_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+};
 
 export default function AuthContextProvider({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
   const [keypair, setKeyPair] = useState<Keypair | null>(null);
   const [stateIndex, setStateIndex] = useState<bigint | null>(null);
   const [signatureMessage, setSignatureMessage] = useState<string>("");
+  const prevAddressRef = useRef<string | undefined>(undefined);
 
   const { signMessageAsync } = useSignMessage({ message: signatureMessage });
 
@@ -28,29 +70,54 @@ export default function AuthContextProvider({ children }: { children: React.Reac
     setSignatureMessage(`Login to ${window.location.origin}`);
   }, []);
 
-  const generateKeypair = useCallback(() => {
-    if (!address || !isConnected || !signatureMessage) return;
-
-    (async () => {
-      try {
-        const signature = await signMessageAsync();
-        const userKeyPair = new Keypair(new PrivKey(signature));
-        setKeyPair(userKeyPair);
-      } catch (err) {
-        console.error(err);
-      }
-    })();
-  }, [address, isConnected, signatureMessage, signMessageAsync]);
-
+  // Hydrate / clear keypair in response to address changes.
+  // - undefined → address (page load or reconnect): try rehydrating from storage
+  // - addressA  → addressB (wallet switch): drop both in-memory and stored keypair
+  // - address   → undefined (disconnect): drop in-memory but keep storage so reconnect is instant
   useEffect(() => {
-    setKeyPair(null);
+    const prev = prevAddressRef.current;
+    prevAddressRef.current = address;
+
+    if (!address) {
+      if (prev) setKeyPair(null);
+      return;
+    }
+
+    if (prev && prev.toLowerCase() !== address.toLowerCase()) {
+      clearStoredKeypair();
+      setKeyPair(null);
+    }
+
+    const stored = loadStoredKeypair(address);
+    if (stored) setKeyPair(stored);
   }, [address]);
 
-  const { data: isRegistered, refetch: refetchIsRegistered } = useScaffoldContractRead({
+  const { data: isRegisteredData, refetch: refetchIsRegistered } = useScaffoldContractRead({
     contractName: "MACIWrapper",
     functionName: "isPublicKeyRegistered",
     args: keypair ? keypair.pubKey.rawPubKey : [0n, 0n],
   });
+
+  const isRegistered = Boolean(isRegisteredData);
+  const isRegisteredLoaded = keypair !== null && isRegisteredData !== undefined;
+
+  const generateKeypair = useCallback(async (): Promise<Keypair | null> => {
+    if (!address || !isConnected || !signatureMessage) return null;
+
+    try {
+      const signature = await signMessageAsync();
+      const userKeyPair = new Keypair(new PrivKey(signature));
+      saveStoredKeypair(address, userKeyPair);
+      setKeyPair(userKeyPair);
+      // Kick an immediate refetch so the UI doesn't wait for a new Hardhat block
+      // (watch:true is block-gated; idle local chains would otherwise stall).
+      refetchIsRegistered();
+      return userKeyPair;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  }, [address, isConnected, signatureMessage, signMessageAsync, refetchIsRegistered]);
 
   const chainId = scaffoldConfig.targetNetworks[0].id;
 
@@ -101,7 +168,7 @@ export default function AuthContextProvider({ children }: { children: React.Reac
   });
 
   return (
-    <AuthContext.Provider value={{ isRegistered: Boolean(isRegistered), keypair, stateIndex, generateKeypair }}>
+    <AuthContext.Provider value={{ isRegistered, isRegisteredLoaded, keypair, stateIndex, generateKeypair }}>
       {children}
     </AuthContext.Provider>
   );
