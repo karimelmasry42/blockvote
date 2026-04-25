@@ -60,6 +60,7 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	event PollPaused(uint256 indexed pollId);
 	event PollResumed(uint256 indexed pollId);
 	event PollClosed(uint256 indexed pollId);
+	event PollNameUpdated(uint256 indexed pollId, string oldName, string newName);
 
 	// pubkey.x => pubkey.y => bool
 	mapping(uint256 => mapping(uint256 => bool)) public isPublicKeyRegistered;
@@ -69,6 +70,11 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 	error PollAlreadyPaused(uint256 pollId);
 	error PollIsNotPaused(uint256 pollId);
 	error PollAlreadyClosed(uint256 pollId);
+	error EditWindowExpired(uint256 pollId, uint256 endTime);
+	error PollNameTooLong(string name);
+
+	uint256 public constant EDIT_NAME_WINDOW_SECONDS = 5 minutes;
+	uint256 public constant MAX_POLL_NAME_LENGTH = 100;
 
 	constructor(
 		IPollFactory _pollFactory,
@@ -245,6 +251,19 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		poll.paused = false;
 
 		emit PollResumed(_pollId);
+	}
+
+	function updatePollName(uint256 _pollId, string calldata _newName) public onlyOwner {
+		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
+		PollData storage poll = _polls[_pollId];
+		if (bytes(_newName).length > MAX_POLL_NAME_LENGTH) revert PollNameTooLong(_newName);
+		if (block.timestamp > poll.startTime + EDIT_NAME_WINDOW_SECONDS)
+			revert EditWindowExpired(_pollId, poll.startTime + EDIT_NAME_WINDOW_SECONDS);
+
+		string memory oldName = poll.name;
+		poll.name = _newName;
+
+		emit PollNameUpdated(_pollId, oldName, _newName);
 	}
 
 	function closePoll(uint256 _pollId) public onlyOwner {

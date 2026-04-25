@@ -157,6 +157,22 @@ const deployedContracts = {
           type: "error",
         },
         {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "endTime",
+              type: "uint256",
+            },
+          ],
+          name: "EditWindowExpired",
+          type: "error",
+        },
+        {
           inputs: [],
           name: "InvalidMessage",
           type: "error",
@@ -246,6 +262,17 @@ const deployedContracts = {
             },
           ],
           name: "PollIsNotPaused",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "string",
+              name: "name",
+              type: "string",
+            },
+          ],
+          name: "PollNameTooLong",
           type: "error",
         },
         {
@@ -407,6 +434,31 @@ const deployedContracts = {
               name: "pollId",
               type: "uint256",
             },
+            {
+              indexed: false,
+              internalType: "string",
+              name: "oldName",
+              type: "string",
+            },
+            {
+              indexed: false,
+              internalType: "string",
+              name: "newName",
+              type: "string",
+            },
+          ],
+          name: "PollNameUpdated",
+          type: "event",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "uint256",
+              name: "pollId",
+              type: "uint256",
+            },
           ],
           name: "PollPaused",
           type: "event",
@@ -479,6 +531,32 @@ const deployedContracts = {
           ],
           name: "SignUp",
           type: "event",
+        },
+        {
+          inputs: [],
+          name: "EDIT_NAME_WINDOW_SECONDS",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "MAX_POLL_NAME_LENGTH",
+          outputs: [
+            {
+              internalType: "uint256",
+              name: "",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
         },
         {
           inputs: [],
@@ -898,6 +976,35 @@ const deployedContracts = {
             {
               internalType: "uint256",
               name: "pollId",
+              type: "uint256",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_poll",
+              type: "address",
+            },
+          ],
+          name: "getPollStateByAddress",
+          outputs: [
+            {
+              internalType: "bool",
+              name: "paused",
+              type: "bool",
+            },
+            {
+              internalType: "uint256",
+              name: "startTime",
+              type: "uint256",
+            },
+            {
+              internalType: "uint256",
+              name: "endTime",
               type: "uint256",
             },
           ],
@@ -1575,6 +1682,24 @@ const deployedContracts = {
             },
             {
               internalType: "string",
+              name: "_newName",
+              type: "string",
+            },
+          ],
+          name: "updatePollName",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "uint256",
+              name: "_pollId",
+              type: "uint256",
+            },
+            {
+              internalType: "string",
               name: "_tallyJsonCID",
               type: "string",
             },
@@ -1708,6 +1833,62 @@ const deployedContracts = {
           type: "constructor",
         },
         {
+          inputs: [
+            {
+              internalType: "address",
+              name: "owner",
+              type: "address",
+            },
+          ],
+          name: "OwnableInvalidOwner",
+          type: "error",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "account",
+              type: "address",
+            },
+          ],
+          name: "OwnableUnauthorizedAccount",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "WrapperAlreadySet",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "WrapperNotSet",
+          type: "error",
+        },
+        {
+          inputs: [],
+          name: "WrapperZeroAddress",
+          type: "error",
+        },
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              internalType: "address",
+              name: "previousOwner",
+              type: "address",
+            },
+            {
+              indexed: true,
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "OwnershipTransferred",
+          type: "event",
+        },
+        {
           inputs: [],
           name: "MESSAGE_DATA_LENGTH",
           outputs: [
@@ -1793,7 +1974,71 @@ const deployedContracts = {
           stateMutability: "nonpayable",
           type: "function",
         },
+        {
+          inputs: [],
+          name: "owner",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "renounceOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "_wrapper",
+              type: "address",
+            },
+          ],
+          name: "setWrapper",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [
+            {
+              internalType: "address",
+              name: "newOwner",
+              type: "address",
+            },
+          ],
+          name: "transferOwnership",
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "wrapper",
+          outputs: [
+            {
+              internalType: "address",
+              name: "",
+              type: "address",
+            },
+          ],
+          stateMutability: "view",
+          type: "function",
+        },
       ],
+      inheritedFunctions: {
+        MESSAGE_DATA_LENGTH:
+          "maci-contracts/contracts/utilities/DomainObjs.sol",
+        deploy: "maci-contracts/contracts/interfaces/IPollFactory.sol",
+      },
       deploymentBlockNumber: 15,
     },
     PoseidonT3: {
