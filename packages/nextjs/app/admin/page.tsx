@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
 import EditPollNameModal from "./_components/EditPollNameModal";
 import PollStatusModal from "./_components/PollStatusModal";
-import { LuCross } from "react-icons/lu";
 import { MdEdit } from "react-icons/md";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
