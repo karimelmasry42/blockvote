@@ -18,10 +18,10 @@ export default function Polls() {
   useAuthUserOnly({});
 
   const router = useRouter();
-  
-if (isAuthLoading) {
-  return <div className="container mx-auto pt-10">Loading...</div>;
-}
+
+  if (isAuthLoading) {
+    return <div className="container mx-auto pt-10">Loading...</div>;
+  }
   return (
     <div className="container mx-auto pt-10">
       <div className="flex mb-5">

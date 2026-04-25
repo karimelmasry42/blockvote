@@ -19,11 +19,7 @@ export function useAuthUserOnly({ inverted }: { inverted?: boolean }) {
   const isLoading = isWalletLoading || isAuthLoading || isOwnerLoading;
 
   const isOwner =
-    !!address &&
-    !!owner &&
-    isAddress(address) &&
-    isAddress(owner) &&
-    getAddress(address) === getAddress(owner);
+    !!address && !!owner && isAddress(address) && isAddress(owner) && getAddress(address) === getAddress(owner);
 
   const isAllowed = isConnected && (isRegistered || isOwner);
 

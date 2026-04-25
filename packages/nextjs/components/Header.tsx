@@ -42,7 +42,7 @@ export const HeaderMenuLinks = () => {
   const isOwner =
     !!address && !!owner && isAddress(address) && isAddress(owner) && getAddress(address) === getAddress(owner);
 
- const canSeePolls = isConnected;
+  const canSeePolls = isConnected;
 
   const normalLinks = [
     {
@@ -67,17 +67,17 @@ export const HeaderMenuLinks = () => {
         const isActive = pathname === href;
 
         return (
-        <li key={href}>
-  <a
-    href={href}
-    className={`${
-      isActive ? "bg-secondary shadow-md" : ""
-    } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col items-center`}
-  >
-    {icon}
-    <span>{label}</span>
-  </a>
-</li>
+          <li key={href}>
+            <a
+              href={href}
+              className={`${
+                isActive ? "bg-secondary shadow-md" : ""
+              } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col items-center`}
+            >
+              {icon}
+              <span>{label}</span>
+            </a>
+          </li>
         );
       })}
 

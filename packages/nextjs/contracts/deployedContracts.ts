@@ -2035,8 +2035,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {
-        MESSAGE_DATA_LENGTH:
-          "maci-contracts/contracts/utilities/DomainObjs.sol",
+        MESSAGE_DATA_LENGTH: "maci-contracts/contracts/utilities/DomainObjs.sol",
         deploy: "maci-contracts/contracts/interfaces/IPollFactory.sol",
       },
       deploymentBlockNumber: 15,

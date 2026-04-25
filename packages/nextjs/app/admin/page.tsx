@@ -25,7 +25,6 @@ export default function AdminPage() {
   const [selectedPollForNameModal, setSelectedPollForNameModal] = useState<Poll>();
   const [closingPollId, setClosingPollId] = useState<bigint | null>(null);
   const [locallyClosedPollIds, setLocallyClosedPollIds] = useState<Set<string>>(new Set());
-  
 
   const { data: admin } = useScaffoldContractRead({
     contractName: "MACIWrapper",
@@ -53,23 +52,20 @@ export default function AdminPage() {
     args: [0n],
   });
 
-  
- 
-
   const ownerLoaded = admin !== undefined;
-const walletLoaded = !isConnecting && !isReconnecting;
+  const walletLoaded = !isConnecting && !isReconnecting;
   const isOwner = useMemo(() => {
     if (!address || !admin) return false;
     return address.toLowerCase() === String(admin).toLowerCase();
   }, [address, admin]);
 
   useEffect(() => {
-  if (!ownerLoaded || !walletLoaded) return;
+    if (!ownerLoaded || !walletLoaded) return;
 
-  if (!isConnected || !address || !isOwner) {
-    router.replace("/polls");
-  }
-}, [ownerLoaded, walletLoaded, isConnected, address, isOwner, router]);
+    if (!isConnected || !address || !isOwner) {
+      router.replace("/polls");
+    }
+  }, [ownerLoaded, walletLoaded, isConnected, address, isOwner, router]);
   const handlePausePoll = async (pollId: bigint) => {
     try {
       await pausePoll({ args: [pollId] });
@@ -92,37 +88,35 @@ const walletLoaded = !isConnecting && !isReconnecting;
     }
   };
 
- 
+  const handleClosePoll = async (pollId: bigint) => {
+    if (!confirm("Close this poll now? This action cannot be undone.")) {
+      return;
+    }
 
-const handleClosePoll = async (pollId: bigint) => {
-  if (!confirm("Close this poll now? This action cannot be undone.")) {
-    return;
-  }
+    setClosingPollId(pollId);
 
-  setClosingPollId(pollId);
+    try {
+      await closePoll({ args: [pollId] });
 
-  try {
-    await closePoll({ args: [pollId] });
+      notification.success("Poll closed");
 
-  notification.success("Poll closed");
+      setLocallyClosedPollIds(prev => {
+        const next = new Set(prev);
+        next.add(pollId.toString());
+        return next;
+      });
 
-setLocallyClosedPollIds(prev => {
-  const next = new Set(prev);
-  next.add(pollId.toString());
-  return next;
-});
-
-await refetchPolls();
-  } catch (err) {
-    console.error(err);
-    notification.error("Failed to close poll");
-  } finally {
-    setClosingPollId(null);
-  }
-};
+      await refetchPolls();
+    } catch (err) {
+      console.error(err);
+      notification.error("Failed to close poll");
+    } finally {
+      setClosingPollId(null);
+    }
+  };
   if (!ownerLoaded || !walletLoaded) {
-  return <div className="container mx-auto pt-10">Loading...</div>;
-}
+    return <div className="container mx-auto pt-10">Loading...</div>;
+  }
 
   if (!isConnected || !address || !isOwner) {
     return null;
@@ -154,105 +148,99 @@ await refetchPolls();
               </tr>
             </thead>
             <tbody>
-             {polls.map(poll => {
-  const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
-  const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
+              {polls.map(poll => {
+                const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
+                const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
 
-  return (
-    <tr key={poll.id.toString()}>
-      <td className="border border-slate-600 py-2 px-1 text-sm text-center">
-        {poll.id.toString()}
-      </td>
+                return (
+                  <tr key={poll.id.toString()}>
+                    <td className="border border-slate-600 py-2 px-1 text-sm text-center">{poll.id.toString()}</td>
 
-      <td className="border border-slate-600 py-2 px-1 text-sm">
-        {poll.name}
-      </td>
+                    <td className="border border-slate-600 py-2 px-1 text-sm">{poll.name}</td>
 
-      <td className="border border-slate-600 py-2 px-1 text-sm text-center">
-        {new Date(Number(poll.startTime) * 1000).toLocaleString()}
-      </td>
+                    <td className="border border-slate-600 py-2 px-1 text-sm text-center">
+                      {new Date(Number(poll.startTime) * 1000).toLocaleString()}
+                    </td>
 
-      <td className="border border-slate-600 py-2 px-1 text-sm text-center">
-        {new Date(Number(poll.endTime) * 1000).toLocaleString()}
-      </td>
+                    <td className="border border-slate-600 py-2 px-1 text-sm text-center">
+                      {new Date(Number(poll.endTime) * 1000).toLocaleString()}
+                    </td>
 
-      <td className="border border-slate-600 py-2 px-1 text-sm text-center">
-        {effectiveStatus}
-      </td>
+                    <td className="border border-slate-600 py-2 px-1 text-sm text-center">{effectiveStatus}</td>
 
-      <td className="border border-slate-600 py-2 px-1 text-sm">
-        <div className="flex flex-wrap justify-center gap-2">
-          {closingPollId === poll.id ? (
-            <button
-              type="button"
-              disabled
-              className="rounded-md bg-gray-500 px-4 py-2 font-semibold text-white cursor-not-allowed"
-            >
-              Closing...
-            </button>
-          ) : effectiveStatus === PollStatus.OPEN ? (
-            <>
-              <button
-                type="button"
-                onClick={() => handlePausePoll(poll.id)}
-                disabled={isPausing || isClosing}
-                className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Pause
-              </button>
+                    <td className="border border-slate-600 py-2 px-1 text-sm">
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {closingPollId === poll.id ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="rounded-md bg-gray-500 px-4 py-2 font-semibold text-white cursor-not-allowed"
+                          >
+                            Closing...
+                          </button>
+                        ) : effectiveStatus === PollStatus.OPEN ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handlePausePoll(poll.id)}
+                              disabled={isPausing || isClosing}
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Pause
+                            </button>
 
-              <button
-                type="button"
-                onClick={() => handleClosePoll(poll.id)}
-                disabled={isClosing}
-                className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Close
-              </button>
-            </>
-          ) : effectiveStatus === PollStatus.PAUSED ? (
-            <>
-              <button
-                type="button"
-                onClick={() => handleResumePoll(poll.id)}
-                disabled={isResuming || isClosing}
-                className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Resume
-              </button>
+                            <button
+                              type="button"
+                              onClick={() => handleClosePoll(poll.id)}
+                              disabled={isClosing}
+                              className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Close
+                            </button>
+                          </>
+                        ) : effectiveStatus === PollStatus.PAUSED ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleResumePoll(poll.id)}
+                              disabled={isResuming || isClosing}
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Resume
+                            </button>
 
-              <button
-                type="button"
-                onClick={() => handleClosePoll(poll.id)}
-                disabled={isClosing}
-                className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Close
-              </button>
-            </>
-          ) : effectiveStatus === PollStatus.CLOSED ? (
-            <button
-              type="button"
-              onClick={() => setSelectedPollForStatusModal(poll)}
-              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
-            >
-              Upload tally file
-            </button>
-          ) : effectiveStatus === PollStatus.RESULT_COMPUTED ? (
-            <Link
-              href={`/poll/${poll.id}`}
-              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
-            >
-              View Results
-            </Link>
-          ) : (
-            <span className="text-sm opacity-70">No actions available</span>
-          )}
-        </div>
-      </td>
-    </tr>
-  );
-})}
+                            <button
+                              type="button"
+                              onClick={() => handleClosePoll(poll.id)}
+                              disabled={isClosing}
+                              className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Close
+                            </button>
+                          </>
+                        ) : effectiveStatus === PollStatus.CLOSED ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPollForStatusModal(poll)}
+                            className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+                          >
+                            Upload tally file
+                          </button>
+                        ) : effectiveStatus === PollStatus.RESULT_COMPUTED ? (
+                          <Link
+                            href={`/poll/${poll.id}`}
+                            className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+                          >
+                            View Results
+                          </Link>
+                        ) : (
+                          <span className="text-sm opacity-70">No actions available</span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

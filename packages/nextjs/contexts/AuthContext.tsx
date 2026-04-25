@@ -9,7 +9,7 @@ import scaffoldConfig from "~~/scaffold.config";
 
 interface IAuthContext {
   isRegistered: boolean;
-  isAuthLoading: boolean; 
+  isAuthLoading: boolean;
   keypair: Keypair | null;
   stateIndex: bigint | null;
   generateKeypair: () => void;
@@ -48,10 +48,10 @@ export default function AuthContextProvider({ children }: { children: React.Reac
   }, [address]);
 
   const {
-  data: isRegistered,
-  isLoading: isAuthLoading,
-  refetch: refetchIsRegistered,
-} = useScaffoldContractRead({
+    data: isRegistered,
+    isLoading: isAuthLoading,
+    refetch: refetchIsRegistered,
+  } = useScaffoldContractRead({
     contractName: "MACIWrapper",
     functionName: "isPublicKeyRegistered",
     args: keypair ? keypair.pubKey.rawPubKey : [0n, 0n],
@@ -107,14 +107,14 @@ export default function AuthContextProvider({ children }: { children: React.Reac
 
   return (
     <AuthContext.Provider
-  value={{
-    isRegistered: Boolean(isRegistered),
-    isAuthLoading,
-    keypair,
-    stateIndex,
-    generateKeypair,
-  }}
->
+      value={{
+        isRegistered: Boolean(isRegistered),
+        isAuthLoading,
+        keypair,
+        stateIndex,
+        generateKeypair,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
