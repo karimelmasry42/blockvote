@@ -96,19 +96,24 @@ export default function AdminPage() {
     }
   };
 
-  const handleClosePoll = async (pollId: bigint) => {
-    if (!confirm("Close this poll now? This action cannot be undone.")) {
-      return;
-    }
+ const handleClosePoll = async (pollId: bigint) => {
+  if (!confirm("Close this poll now? This action cannot be undone.")) {
+    return;
+  }
 
-    try {
-      await closePoll({ args: [pollId] });
-      refetchPolls();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  try {
+    await closePoll({ args: [pollId] });
 
+    notification.success("Close transaction submitted");
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    await refetchPolls();
+  } catch (err) {
+    console.error(err);
+    notification.error("Failed to close poll");
+  }
+};
   if (!ownerLoaded) {
     return <div className="container mx-auto pt-10">Loading...</div>;
   }
@@ -179,17 +184,10 @@ export default function AdminPage() {
                   <td>{new Date(Number(poll.startTime) * 1000).toLocaleString()}</td>
                   <td>{new Date(Number(poll.endTime) * 1000).toLocaleString()}</td>
                   <td>
-                    {poll.status == PollStatus.CLOSED ? (
-                      <>
+                    {poll.status === PollStatus.RESULT_COMPUTED ? (
+  <>
                         {poll.status}{" "}
-                        <button className="text-accent underline" onClick={() => setSelectedPollForStatusModal(poll)}>
-                          (Required Actions)
-                        </button>
-                      </>
-                    ) : poll.status == PollStatus.RESULT_COMPUTED ? (
-                      <>
-                        {poll.status}{" "}
-                        <Link href={`/polls/${poll.id}`} className="text-accent underline">
+                        <Link href={`/poll/${poll.id}`} className="text-blue-600 underline">
                           (View Results)
                         </Link>
                       </>
@@ -199,33 +197,64 @@ export default function AdminPage() {
                   </td>
                   <td className="border border-slate-600 py-2 px-1 text-sm">
                     <div className="flex flex-wrap justify-center gap-2">
-                      {poll.status === PollStatus.PAUSED ? (
-                        <button
-                          className="rounded-lg border border-slate-600 bg-secondary px-3 py-2 text-sm font-semibold text-neutral-content"
-                          onClick={() => handleResumePoll(poll.id)}
-                          disabled={isResuming || isClosing}
-                        >
-                          Resume
-                        </button>
-                      ) : poll.status !== PollStatus.CLOSED && poll.status !== PollStatus.RESULT_COMPUTED ? (
-                        <button
-                          className="rounded-lg border border-slate-600 bg-secondary px-3 py-2 text-sm font-semibold text-neutral-content"
-                          onClick={() => handlePausePoll(poll.id)}
-                          disabled={isPausing || isClosing}
-                        >
-                          Pause
-                        </button>
-                      ) : null}
+                     {poll.status === PollStatus.OPEN ? (
+  <>
+    <button
+      type="button"
+      onClick={() => handlePausePoll(poll.id)}
+      disabled={isPausing || isClosing}
+      className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      Pause
+    </button>
 
-                      {poll.status !== PollStatus.CLOSED && poll.status !== PollStatus.RESULT_COMPUTED ? (
-                        <button
-                          className="rounded-lg border border-slate-600 bg-accent px-3 py-2 text-sm font-semibold text-neutral-content"
-                          onClick={() => handleClosePoll(poll.id)}
-                          disabled={isClosing}
-                        >
-                          Close
-                        </button>
-                      ) : null}
+    <button
+      type="button"
+      onClick={() => handleClosePoll(poll.id)}
+      disabled={isClosing}
+      className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      Close
+    </button>
+  </>
+) : poll.status === PollStatus.PAUSED ? (
+  <>
+    <button
+      type="button"
+      onClick={() => handleResumePoll(poll.id)}
+      disabled={isResuming || isClosing}
+      className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      Resume
+    </button>
+
+    <button
+      type="button"
+      onClick={() => handleClosePoll(poll.id)}
+      disabled={isClosing}
+      className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      Close
+    </button>
+  </>
+) : poll.status === PollStatus.CLOSED ? (
+  <button
+    type="button"
+    onClick={() => setSelectedPollForStatusModal(poll)}
+    className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+  >
+    Upload tally file
+  </button>
+) : poll.status === PollStatus.RESULT_COMPUTED ? (
+  <Link
+    href={`/poll/${poll.id}`}
+    className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+  >
+    View Results
+  </Link>
+) : (
+  <span className="text-sm opacity-70">No actions available</span>
+)}
                     </div>
                   </td>
                 </tr>

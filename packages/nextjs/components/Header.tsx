@@ -42,7 +42,7 @@ export const HeaderMenuLinks = () => {
   const isOwner =
     !!address && !!owner && isAddress(address) && isAddress(owner) && getAddress(address) === getAddress(owner);
 
-  const canSeePolls = isConnected && (isRegistered || isOwner);
+ const canSeePolls = isConnected;
 
   const normalLinks = [
     {
