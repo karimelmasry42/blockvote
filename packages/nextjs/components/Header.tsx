@@ -31,7 +31,6 @@ const adminPageLink: HeaderMenuLink = {
 
 export const HeaderMenuLinks = () => {
   const pathname = usePathname();
-  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { isRegistered } = useAuthContext();
 

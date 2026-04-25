@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
 import EditPollNameModal from "./_components/EditPollNameModal";
 import PollStatusModal from "./_components/PollStatusModal";
-import { MdEdit } from "react-icons/md";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
 import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
@@ -56,7 +54,7 @@ export default function AdminPage() {
   });
 
   const EDIT_WINDOW_MS = 5 * 60 * 1000;
-  const canEditPollName = (poll: Poll) => Date.now() < Number(poll.startTime) * 1000 + EDIT_WINDOW_MS;
+ 
 
   const ownerLoaded = admin !== undefined;
 const walletLoaded = !isConnecting && !isReconnecting;
