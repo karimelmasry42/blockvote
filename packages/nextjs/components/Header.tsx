@@ -2,7 +2,7 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getAddress, isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Bars3Icon, BugAntIcon, ListBulletIcon } from "@heroicons/react/24/outline";
@@ -31,6 +31,7 @@ const adminPageLink: HeaderMenuLink = {
 
 export const HeaderMenuLinks = () => {
   const pathname = usePathname();
+  const router = useRouter();
   const { address, isConnected } = useAccount();
   const { isRegistered } = useAuthContext();
 
@@ -67,19 +68,17 @@ export const HeaderMenuLinks = () => {
         const isActive = pathname === href;
 
         return (
-          <li key={href}>
-            <Link
-              href={href}
-              passHref
-              prefetch={false}
-              className={`${
-                isActive ? "bg-secondary shadow-md" : ""
-              } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col`}
-            >
-              {icon}
-              <span>{label}</span>
-            </Link>
-          </li>
+        <li key={href}>
+  <a
+    href={href}
+    className={`${
+      isActive ? "bg-secondary shadow-md" : ""
+    } hover:bg-secondary hover:shadow-md focus:!bg-secondary active:!text-neutral py-1.5 px-3 text-sm rounded-full gap-2 grid grid-flow-col items-center`}
+  >
+    {icon}
+    <span>{label}</span>
+  </a>
+</li>
         );
       })}
 

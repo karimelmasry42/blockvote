@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Paginator from "~~/components/Paginator";
 import HoverBorderCard from "~~/components/card/HoverBorderCard";
+import { useAuthContext } from "~~/contexts/AuthContext";
 import { useAuthUserOnly } from "~~/hooks/useAuthUserOnly";
 import { useFetchPolls } from "~~/hooks/useFetchPolls";
 import { useTotalPages } from "~~/hooks/useTotalPages";
@@ -11,12 +12,16 @@ import { useTotalPages } from "~~/hooks/useTotalPages";
 export default function Polls() {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(10);
+  const { isAuthLoading } = useAuthContext();
   const { totalPolls, polls } = useFetchPolls(currentPage, limit);
   const totalPages = useTotalPages(totalPolls, limit);
   useAuthUserOnly({});
 
   const router = useRouter();
-
+  
+if (isAuthLoading) {
+  return <div className="container mx-auto pt-10">Loading...</div>;
+}
   return (
     <div className="container mx-auto pt-10">
       <div className="flex mb-5">
