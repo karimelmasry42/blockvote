@@ -46,15 +46,14 @@ export default function AdminPage() {
     args: [0n],
   });
 
-const { writeAsync: closePoll, isMining: isClosing } = useScaffoldContractWrite({
+  const { writeAsync: closePoll, isMining: isClosing } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "closePoll" as const,
     args: [0n],
   });
 
   const EDIT_WINDOW_MS = 5 * 60 * 1000;
-  const canEditPollName = (poll: Poll) =>
-    Date.now() < Number(poll.startTime) * 1000 + EDIT_WINDOW_MS;
+  const canEditPollName = (poll: Poll) => Date.now() < Number(poll.startTime) * 1000 + EDIT_WINDOW_MS;
 
   const ownerLoaded = admin !== undefined;
   const isOwner = useMemo(() => {
