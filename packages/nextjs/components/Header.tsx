@@ -2,7 +2,7 @@
 
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { getAddress, isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Bars3Icon, BugAntIcon, ListBulletIcon } from "@heroicons/react/24/outline";

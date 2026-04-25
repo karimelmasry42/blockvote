@@ -53,7 +53,7 @@ export default function AdminPage() {
     args: [0n],
   });
 
-  const EDIT_WINDOW_MS = 5 * 60 * 1000;
+  
  
 
   const ownerLoaded = admin !== undefined;
