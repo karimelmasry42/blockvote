@@ -56,7 +56,7 @@ const { writeAsync: closePoll, isMining: isClosing } = useScaffoldContractWrite(
   const canEditPollName = (poll: Poll) =>
     Date.now() < Number(poll.startTime) * 1000 + EDIT_WINDOW_MS;
 
-const ownerLoaded = admin !== undefined;
+  const ownerLoaded = admin !== undefined;
   const isOwner = useMemo(() => {
     if (!address || !admin) return false;
     return address.toLowerCase() === String(admin).toLowerCase();
