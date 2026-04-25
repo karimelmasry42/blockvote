@@ -5,7 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
+import EditPollNameModal from "./_components/EditPollNameModal";
 import PollStatusModal from "./_components/PollStatusModal";
+import { MdEdit } from "react-icons/md";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
 import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
@@ -22,6 +24,7 @@ export default function AdminPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(10);
   const [selectedPollForStatusModal, setSelectedPollForStatusModal] = useState<Poll>();
+  const [selectedPollForNameModal, setSelectedPollForNameModal] = useState<Poll>();
 
   const { data: admin } = useScaffoldContractRead({
     contractName: "MACIWrapper",
@@ -49,8 +52,10 @@ export default function AdminPage() {
     args: [0n],
   });
 
-  const ownerLoaded = admin !== undefined;
+  const EDIT_WINDOW_MS = 5 * 60 * 1000;
+  const canEditPollName = (poll: Poll) => Date.now() < Number(poll.startTime) * 1000 + EDIT_WINDOW_MS;
 
+  const ownerLoaded = admin !== undefined;
   const isOwner = useMemo(() => {
     if (!address || !admin) return false;
     return address.toLowerCase() === String(admin).toLowerCase();
@@ -143,7 +148,17 @@ export default function AdminPage() {
                   <td className="border border-slate-600 py-2 px-1 text-sm font-medium">{poll.id.toString()}</td>
                   <td>
                     <div className="flex flex-col gap-2">
-                      <div>{poll.name}</div>
+                      <div className="flex items-center justify-center gap-2">
+                        <span>{poll.name}</span>
+                        {canEditPollName(poll) && (
+                          <button
+                            className="btn btn-circle btn-ghost btn-sm"
+                            onClick={() => setSelectedPollForNameModal(poll)}
+                          >
+                            <MdEdit size={16} />
+                          </button>
+                        )}
+                      </div>
                       <div className="flex flex-wrap gap-2 justify-center">
                         {poll.candidateOptions?.slice(0, 3).map((candidate, index) => (
                           <div key={index} className="flex items-center gap-2 bg-primary rounded-lg px-2 py-1">
@@ -232,6 +247,13 @@ export default function AdminPage() {
         poll={selectedPollForStatusModal}
         setOpen={() => setSelectedPollForStatusModal(undefined)}
         show={Boolean(selectedPollForStatusModal)}
+      />
+
+      <EditPollNameModal
+        poll={selectedPollForNameModal}
+        setOpen={() => setSelectedPollForNameModal(undefined)}
+        show={Boolean(selectedPollForNameModal)}
+        refetchPolls={refetchPolls}
       />
     </div>
   );

@@ -1,5 +1,8 @@
 node_modules
 
+# local Windows hooks (not shared with teammates)
+.husky-win
+
 # npm lockfile — this project is yarn-only. Ignore any stray package-lock.json
 # produced by an accidental `npm install` so it never gets re-committed.
 package-lock.json
