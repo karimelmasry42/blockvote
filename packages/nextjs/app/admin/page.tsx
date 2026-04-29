@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
@@ -8,15 +8,25 @@ import EditPollNameModal from "./_components/EditPollNameModal";
 import PollStatusModal from "./_components/PollStatusModal";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
-import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { useAuthContext } from "~~/contexts/AuthContext";
+import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { useFetchPolls } from "~~/hooks/useFetchPolls";
 import { useTotalPages } from "~~/hooks/useTotalPages";
 import { Poll, PollStatus } from "~~/types/poll";
 import { notification } from "~~/utils/scaffold-eth";
 
+const EDIT_NAME_WINDOW_SECONDS = 5 * 60;
+
 export default function AdminPage() {
   const router = useRouter();
   const { address, isConnected, isConnecting, isReconnecting } = useAccount();
+  const { isOwner, isOwnerLoading } = useAuthContext();
+  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const [openCreatePollModal, setOpenCreatePollModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -25,11 +35,6 @@ export default function AdminPage() {
   const [selectedPollForNameModal, setSelectedPollForNameModal] = useState<Poll>();
   const [closingPollId, setClosingPollId] = useState<bigint | null>(null);
   const [locallyClosedPollIds, setLocallyClosedPollIds] = useState<Set<string>>(new Set());
-
-  const { data: admin } = useScaffoldContractRead({
-    contractName: "MACIWrapper",
-    functionName: "owner",
-  });
 
   const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
   const totalPages = useTotalPages(totalPolls, limit);
@@ -52,12 +57,8 @@ export default function AdminPage() {
     args: [0n],
   });
 
-  const ownerLoaded = admin !== undefined;
+  const ownerLoaded = !isOwnerLoading;
   const walletLoaded = !isConnecting && !isReconnecting;
-  const isOwner = useMemo(() => {
-    if (!address || !admin) return false;
-    return address.toLowerCase() === String(admin).toLowerCase();
-  }, [address, admin]);
 
   useEffect(() => {
     if (!ownerLoaded || !walletLoaded) return;
@@ -107,6 +108,13 @@ export default function AdminPage() {
       });
 
       await refetchPolls();
+
+      setLocallyClosedPollIds(prev => {
+        if (!prev.has(pollId.toString())) return prev;
+        const next = new Set(prev);
+        next.delete(pollId.toString());
+        return next;
+      });
     } catch (err) {
       console.error(err);
       notification.error("Failed to close poll");
@@ -151,6 +159,11 @@ export default function AdminPage() {
               {polls.map(poll => {
                 const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
                 const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
+                const editWindowOpen = now < Number(poll.createdAt) + EDIT_NAME_WINDOW_SECONDS;
+                const canEditName =
+                  editWindowOpen &&
+                  effectiveStatus !== PollStatus.CLOSED &&
+                  effectiveStatus !== PollStatus.RESULT_COMPUTED;
 
                 return (
                   <tr key={poll.id.toString()}>
@@ -170,6 +183,15 @@ export default function AdminPage() {
 
                     <td className="border border-slate-600 py-2 px-1 text-sm">
                       <div className="flex flex-wrap justify-center gap-2">
+                        {canEditName && closingPollId !== poll.id && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPollForNameModal(poll)}
+                            className="rounded-md bg-yellow-500 px-4 py-2 font-semibold text-white hover:bg-yellow-600"
+                          >
+                            Edit Name
+                          </button>
+                        )}
                         {closingPollId === poll.id ? (
                           <button
                             type="button"

@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { Keypair, PrivKey } from "maci-domainobjs";
+import { getAddress, isAddress } from "viem";
 import { useAccount, useSignMessage } from "wagmi";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { useScaffoldContractRead, useScaffoldEventHistory, useScaffoldEventSubscriber } from "~~/hooks/scaffold-eth";
@@ -13,6 +14,9 @@ interface IAuthContext {
   keypair: Keypair | null;
   stateIndex: bigint | null;
   generateKeypair: () => void;
+  isOwner: boolean;
+  owner: string | undefined;
+  isOwnerLoading: boolean;
 }
 
 export const AuthContext = createContext<IAuthContext>({} as IAuthContext);
@@ -56,6 +60,14 @@ export default function AuthContextProvider({ children }: { children: React.Reac
     functionName: "isPublicKeyRegistered",
     args: keypair ? keypair.pubKey.rawPubKey : [0n, 0n],
   });
+
+  const { data: owner, isLoading: isOwnerLoading } = useScaffoldContractRead({
+    contractName: "MACIWrapper",
+    functionName: "owner",
+  });
+
+  const isOwner =
+    !!address && !!owner && isAddress(address) && isAddress(owner) && getAddress(address) === getAddress(owner);
 
   const chainId = scaffoldConfig.targetNetworks[0].id;
 
@@ -113,6 +125,9 @@ export default function AuthContextProvider({ children }: { children: React.Reac
         keypair,
         stateIndex,
         generateKeypair,
+        isOwner,
+        owner: typeof owner === "string" ? owner : undefined,
+        isOwnerLoading,
       }}
     >
       {children}
