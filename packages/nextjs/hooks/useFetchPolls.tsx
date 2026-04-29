@@ -70,8 +70,7 @@ export const useFetchPolls = (currentPage = 1, limit = 10, reversed = true) => {
   }, [rawPolls]);
 
   function refetch() {
-    refetchTotalPolls();
-    refetchPolls();
+    return Promise.all([refetchTotalPolls(), refetchPolls()]);
   }
 
   return { totalPolls: Number(totalPolls || 0n), polls, refetch };

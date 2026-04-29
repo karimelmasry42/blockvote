@@ -9,24 +9,16 @@ import PollStatusModal from "./_components/PollStatusModal";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
 import { useAuthContext } from "~~/contexts/AuthContext";
-import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { useFetchPolls } from "~~/hooks/useFetchPolls";
 import { useTotalPages } from "~~/hooks/useTotalPages";
 import { Poll, PollStatus } from "~~/types/poll";
 import { notification } from "~~/utils/scaffold-eth";
 
-const EDIT_NAME_WINDOW_SECONDS = 5 * 60;
-
 export default function AdminPage() {
   const router = useRouter();
   const { address, isConnected, isConnecting, isReconnecting } = useAccount();
   const { isOwner, isOwnerLoading } = useAuthContext();
-  const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const [openCreatePollModal, setOpenCreatePollModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,6 +30,11 @@ export default function AdminPage() {
 
   const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
   const totalPages = useTotalPages(totalPolls, limit);
+
+  const { data: editNameWindowSeconds } = useScaffoldContractRead({
+    contractName: "MACIWrapper",
+    functionName: "EDIT_NAME_WINDOW_SECONDS",
+  });
 
   const { writeAsync: pausePoll, isMining: isPausing } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
@@ -67,6 +64,22 @@ export default function AdminPage() {
       router.replace("/polls");
     }
   }, [ownerLoaded, walletLoaded, isConnected, address, isOwner, router]);
+
+  useEffect(() => {
+    if (!polls || locallyClosedPollIds.size === 0) return;
+
+    setLocallyClosedPollIds(prev => {
+      let next: Set<string> | null = null;
+      for (const id of prev) {
+        const poll = polls.find(p => p.id.toString() === id);
+        if (poll && (poll.status === PollStatus.CLOSED || poll.status === PollStatus.RESULT_COMPUTED)) {
+          if (!next) next = new Set(prev);
+          next.delete(id);
+        }
+      }
+      return next ?? prev;
+    });
+  }, [polls, locallyClosedPollIds]);
   const handlePausePoll = async (pollId: bigint) => {
     try {
       await pausePoll({ args: [pollId] });
@@ -108,13 +121,6 @@ export default function AdminPage() {
       });
 
       await refetchPolls();
-
-      setLocallyClosedPollIds(prev => {
-        if (!prev.has(pollId.toString())) return prev;
-        const next = new Set(prev);
-        next.delete(pollId.toString());
-        return next;
-      });
     } catch (err) {
       console.error(err);
       notification.error("Failed to close poll");
@@ -159,7 +165,9 @@ export default function AdminPage() {
               {polls.map(poll => {
                 const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
                 const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
-                const editWindowOpen = now < Number(poll.createdAt) + EDIT_NAME_WINDOW_SECONDS;
+                const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+                const editWindowOpen =
+                  editNameWindowSeconds !== undefined && nowSeconds < poll.createdAt + editNameWindowSeconds;
                 const canEditName =
                   editWindowOpen &&
                   effectiveStatus !== PollStatus.CLOSED &&
