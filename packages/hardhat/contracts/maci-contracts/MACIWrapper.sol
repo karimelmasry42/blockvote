@@ -34,6 +34,7 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		string[] options;
 		string tallyJsonCID;
 		bool paused;
+		uint256 createdAt;
 	}
 
 	mapping(uint256 => PollData) internal _polls;
@@ -188,7 +189,8 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 			pollContracts: pollContracts,
 			options: _options,
 			tallyJsonCID: "",
-			paused: false
+			paused: false,
+			createdAt: block.timestamp
 		});
 
 		emit PollCreated(
@@ -257,8 +259,8 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		if (_pollId >= nextPollId) revert PollDoesNotExist(_pollId);
 		PollData storage poll = _polls[_pollId];
 		if (bytes(_newName).length > MAX_POLL_NAME_LENGTH) revert PollNameTooLong(_newName);
-		if (block.timestamp > poll.startTime + EDIT_NAME_WINDOW_SECONDS)
-			revert EditWindowExpired(_pollId, poll.startTime + EDIT_NAME_WINDOW_SECONDS);
+		if (block.timestamp > poll.createdAt + EDIT_NAME_WINDOW_SECONDS)
+			revert EditWindowExpired(_pollId, poll.createdAt + EDIT_NAME_WINDOW_SECONDS);
 
 		string memory oldName = poll.name;
 		poll.name = _newName;

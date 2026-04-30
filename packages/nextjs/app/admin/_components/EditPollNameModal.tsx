@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog } from "@headlessui/react";
 import Modal from "~~/components/Modal";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
@@ -22,10 +22,14 @@ export default function EditPollNameModal({
 }) {
   const [name, setName] = useState(poll?.name ?? "");
 
+  useEffect(() => {
+    setName(poll?.name ?? "");
+  }, [poll]);
+
   const { writeAsync, isMining } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
     functionName: "updatePollName",
-    args: [undefined, undefined],
+    args: [0n, ""],
   });
 
   const trimmedName = name.trim();
@@ -44,6 +48,7 @@ export default function EditPollNameModal({
       setOpen(false);
     } catch (err) {
       console.error(err);
+      notification.error("Failed to update poll name");
     }
   }
 

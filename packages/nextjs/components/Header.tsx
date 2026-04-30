@@ -3,14 +3,13 @@
 import React, { useCallback, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getAddress, isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { Bars3Icon, BugAntIcon, ListBulletIcon } from "@heroicons/react/24/outline";
 import RegisterButton from "~~/app/_components/RegisterButton";
 import { BlockVoteLogo } from "~~/components/assets/BlockVoteLogo";
 import { FaucetButton, RainbowKitCustomConnectButton } from "~~/components/scaffold-eth";
 import { useAuthContext } from "~~/contexts/AuthContext";
-import { useOutsideClick, useScaffoldContractRead } from "~~/hooks/scaffold-eth";
+import { useOutsideClick } from "~~/hooks/scaffold-eth";
 
 type HeaderMenuLink = {
   label: string;
@@ -31,16 +30,8 @@ const adminPageLink: HeaderMenuLink = {
 
 export const HeaderMenuLinks = () => {
   const pathname = usePathname();
-  const { address, isConnected } = useAccount();
-  const { isRegistered } = useAuthContext();
-
-  const { data: owner } = useScaffoldContractRead({
-    contractName: "MACIWrapper",
-    functionName: "owner",
-  });
-
-  const isOwner =
-    !!address && !!owner && isAddress(address) && isAddress(owner) && getAddress(address) === getAddress(owner);
+  const { isConnected } = useAccount();
+  const { isRegistered, isOwner, owner } = useAuthContext();
 
   const canSeePolls = isConnected;
 
