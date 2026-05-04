@@ -35,6 +35,7 @@ export interface RawPoll {
   options: readonly string[];
   tallyJsonCID: string;
   paused: boolean;
+  createdAt: bigint;
 }
 
 export interface Poll extends RawPoll {
