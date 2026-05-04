@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import { useEffect, useMemo, useState } from "react";
-=======
 import { useEffect, useState } from "react";
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
@@ -22,10 +18,7 @@ import { notification } from "~~/utils/scaffold-eth";
 export default function AdminPage() {
   const router = useRouter();
   const { address, isConnected, isConnecting, isReconnecting } = useAccount();
-<<<<<<< HEAD
-=======
   const { isOwner, isOwnerLoading } = useAuthContext();
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
 
   const [openCreatePollModal, setOpenCreatePollModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,17 +54,8 @@ export default function AdminPage() {
     args: [0n],
   });
 
-<<<<<<< HEAD
-  const ownerLoaded = admin !== undefined;
-  const walletLoaded = !isConnecting && !isReconnecting;
-  const isOwner = useMemo(() => {
-    if (!address || !admin) return false;
-    return address.toLowerCase() === String(admin).toLowerCase();
-  }, [address, admin]);
-=======
   const ownerLoaded = !isOwnerLoading;
   const walletLoaded = !isConnecting && !isReconnecting;
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
 
   useEffect(() => {
     if (!ownerLoaded || !walletLoaded) return;
@@ -80,8 +64,6 @@ export default function AdminPage() {
       router.replace("/polls");
     }
   }, [ownerLoaded, walletLoaded, isConnected, address, isOwner, router]);
-<<<<<<< HEAD
-=======
 
   useEffect(() => {
     if (!polls || locallyClosedPollIds.size === 0) return;
@@ -98,7 +80,6 @@ export default function AdminPage() {
       return next ?? prev;
     });
   }, [polls, locallyClosedPollIds]);
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
   const handlePausePoll = async (pollId: bigint) => {
     try {
       await pausePoll({ args: [pollId] });
@@ -184,8 +165,6 @@ export default function AdminPage() {
               {polls.map(poll => {
                 const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
                 const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
-<<<<<<< HEAD
-=======
                 const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
                 const editWindowOpen =
                   editNameWindowSeconds !== undefined && nowSeconds < poll.createdAt + editNameWindowSeconds;
@@ -193,7 +172,6 @@ export default function AdminPage() {
                   editWindowOpen &&
                   effectiveStatus !== PollStatus.CLOSED &&
                   effectiveStatus !== PollStatus.RESULT_COMPUTED;
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
 
                 return (
                   <tr key={poll.id.toString()}>
@@ -213,15 +191,6 @@ export default function AdminPage() {
 
                     <td className="border border-slate-600 py-2 px-1 text-sm">
                       <div className="flex flex-wrap justify-center gap-2">
-<<<<<<< HEAD
-                        {closingPollId === poll.id ? (
-                          <button
-                            type="button"
-                            disabled
-                            className="rounded-md bg-gray-500 px-4 py-2 font-semibold text-white cursor-not-allowed"
-                          >
-                            Closing...
-=======
                         {canEditName && closingPollId !== poll.id && (
                           <button
                             type="button"
@@ -229,7 +198,6 @@ export default function AdminPage() {
                             className="rounded-md bg-yellow-500 px-4 py-2 font-semibold text-white hover:bg-yellow-600"
                           >
                             Edit Name
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
                           </button>
                         ) : effectiveStatus === PollStatus.OPEN ? (
                           <>
@@ -289,8 +257,6 @@ export default function AdminPage() {
                         ) : (
                           <span className="text-sm opacity-70">No actions available</span>
                         )}
-<<<<<<< HEAD
-=======
                         {closingPollId === poll.id ? (
                           <button
                             type="button"
@@ -357,7 +323,6 @@ export default function AdminPage() {
                         ) : (
                           <span className="text-sm opacity-70">No actions available</span>
                         )}
->>>>>>> a30c5c87de8cc370070fcbf96d9e309570a6d131
                       </div>
                     </td>
                   </tr>
