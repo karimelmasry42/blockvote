@@ -7,6 +7,7 @@ import { MdEdit } from "react-icons/md";
 import { RxCross2 } from "react-icons/rx";
 import Modal from "~~/components/Modal";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
+import { useChainTimestamp } from "~~/hooks/useChainTimestamp";
 import { EMode, PollType } from "~~/types/poll";
 import { notification } from "~~/utils/scaffold-eth";
 
@@ -38,7 +39,9 @@ export default function CreatePollModal({
   setOpen: (value: boolean) => void;
   refetchPolls: () => void;
 }) {
-  const now = new Date();
+  const chainTimestamp = useChainTimestamp();
+  const effectiveNowMs = (chainTimestamp ?? Math.round(Date.now() / 1000)) * 1000;
+  const now = new Date(effectiveNowMs);
   const defaultExpiry = new Date(now.getTime() + 60 * 60 * 1000);
 
   const [pollData, setPollData] = useState({
@@ -156,7 +159,7 @@ export default function CreatePollModal({
       const start = new Date(pollData.startDate);
       if (isNaN(start.getTime())) {
         startDateReason = "Please enter a valid start date";
-      } else if (start.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) {
+      } else if (start.getTime() < effectiveNowMs + START_TIME_BUFFER_SECONDS * 1000) {
         startDateReason = `Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`;
       }
 
@@ -186,7 +189,7 @@ export default function CreatePollModal({
       const expiry = new Date(pollData.expiry);
       if (isNaN(expiry.getTime())) {
         endTimeReason = "Please enter a valid end date";
-      } else if (expiry.getTime() - Date.now() < (START_TIME_BUFFER_SECONDS + 60) * 1000) {
+      } else if (expiry.getTime() - effectiveNowMs < (START_TIME_BUFFER_SECONDS + 60) * 1000) {
         endTimeReason = `End time must be at least ${START_TIME_BUFFER_SECONDS + 60} seconds from now`;
       }
     }
@@ -203,7 +206,7 @@ export default function CreatePollModal({
       duration: durationReason,
       overall,
     };
-  }, [pollData, validOptionsCount, hasBlankOptions]);
+  }, [pollData, validOptionsCount, hasBlankOptions, effectiveNowMs]);
 
   const isCreateDisabled = validation.overall !== null;
   const fieldHint = "mt-1 text-xs text-red-500";
@@ -248,7 +251,7 @@ export default function CreatePollModal({
     if (pollData.startMode === "now") {
       // Buffer so the transaction has time to mine before startTime.
       // Without it, block.timestamp > startTimestamp by the time the tx lands.
-      startTimestamp = Math.round(Date.now() / 1000) + START_TIME_BUFFER_SECONDS;
+      startTimestamp = Math.round(effectiveNowMs / 1000) + START_TIME_BUFFER_SECONDS;
       if (pollData.endMode === "duration") {
         const mins = parseInt(pollData.durationMinutes);
         if (isNaN(mins) || mins < 1) {
@@ -279,7 +282,7 @@ export default function CreatePollModal({
       }
       // Require a minimum lead time so the tx can mine before startTime.
       // Picking a time only a few seconds in the future would otherwise revert.
-      if (startDate.getTime() < Date.now() + START_TIME_BUFFER_SECONDS * 1000) {
+      if (startDate.getTime() < effectiveNowMs + START_TIME_BUFFER_SECONDS * 1000) {
         notification.error(`Start date must be at least ${START_TIME_BUFFER_SECONDS} seconds in the future`, {
           showCloseButton: false,
         });

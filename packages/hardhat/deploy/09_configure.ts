@@ -8,13 +8,26 @@ import { MACIWrapper, Verifier, VkRegistry, WrapperAwarePollFactory } from "../t
 function fetchOrCreateKeyPair(filePath: string) {
   let keypair: Keypair | null = null;
   if (fs.existsSync(filePath)) {
-    const data = fs.readFileSync(filePath);
-    const jsonPair = JSON.parse(data.toString("utf-8"));
-    keypair = Keypair.fromJSON(jsonPair);
+    try {
+      const data = fs.readFileSync(filePath);
+      const jsonPair = JSON.parse(data.toString("utf-8"));
+      const loadedKeypair = Keypair.fromJSON(jsonPair);
+      const serialized = loadedKeypair.toJSON();
+
+      if (serialized.privKey === jsonPair.privKey && serialized.pubKey === jsonPair.pubKey) {
+        keypair = loadedKeypair;
+      } else {
+        console.warn(`Inconsistent keypair in ${filePath}. Regenerating...`);
+      }
+    } catch (e) {
+      console.warn(`Error reading keypair in ${filePath}. Regenerating...`);
+    }
   }
+
   if (!keypair) {
     keypair = new Keypair();
     fs.writeFileSync(filePath, JSON.stringify(keypair.toJSON()));
+    console.log(`New coordinator keypair generated and saved to ${filePath}`);
   }
 
   return keypair as Keypair;
