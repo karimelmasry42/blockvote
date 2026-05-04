@@ -191,7 +191,7 @@ export default function AdminPage() {
 
                     <td className="border border-slate-600 py-2 px-1 text-sm">
                       <div className="flex flex-wrap justify-center gap-2">
-                        {canEditName && closingPollId !== poll.id && (
+                        {canEditName && closingPollId !== poll.id ? (
                           <button
                             type="button"
                             onClick={() => setSelectedPollForNameModal(poll)}
@@ -199,7 +199,27 @@ export default function AdminPage() {
                           >
                             Edit Name
                           </button>
-                        )}
+                        ) : effectiveStatus === PollStatus.OPEN ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handlePausePoll(poll.id)}
+                              disabled={isPausing || isClosing}
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Pause
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleClosePoll(poll.id)}
+                              disabled={isClosing}
+                              className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Close
+                            </button>
+                          </>
+                        ) : null}
                         {closingPollId === poll.id ? (
                           <button
                             type="button"
