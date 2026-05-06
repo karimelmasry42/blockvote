@@ -1764,7 +1764,7 @@ const deployedContracts = {
         stateTreeDepth: "maci-contracts/contracts/MACI.sol",
         tallyFactory: "maci-contracts/contracts/MACI.sol",
       },
-      deploymentBlockNumber: 15,
+      deploymentBlockNumber: 16,
     },
     MessageProcessorFactory: {
       address: "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
@@ -3624,7 +3624,7 @@ const deployedContracts = {
           type: "function",
         },
       ],
-      deploymentBlockNumber: 17,
+      deploymentBlockNumber: 18,
     },
   },
 } as const;
