@@ -35,6 +35,13 @@ export default function AdminPage() {
     functionName: "owner",
   });
 
+  const { data: editNameWindowSeconds } = useScaffoldContractRead({
+    contractName: "MACIWrapper",
+    functionName: "EDIT_NAME_WINDOW_SECONDS",
+  });
+
+  const EDIT_NAME_WINDOW_SECONDS = editNameWindowSeconds ? Number(editNameWindowSeconds) : 300;
+
   const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
   const totalPages = useTotalPages(totalPolls, limit);
 
@@ -156,7 +163,6 @@ export default function AdminPage() {
                 const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
                 const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
                 const candidateOptions: CandidateOption[] = getCandidateOptions(poll.metadata, poll.options);
-                const EDIT_NAME_WINDOW_SECONDS = 300;
                 const now = Math.floor(Date.now() / 1000);
                 const timeSinceStart = Number(poll.startTime) - now;
                 const canEditName =
