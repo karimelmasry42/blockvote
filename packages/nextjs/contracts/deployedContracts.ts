@@ -815,6 +815,11 @@ const deployedContracts = {
                   name: "paused",
                   type: "bool",
                 },
+                {
+                  internalType: "uint256",
+                  name: "createdAt",
+                  type: "uint256",
+                },
               ],
               internalType: "struct MACIWrapper.PollData",
               name: "poll_",
@@ -917,6 +922,11 @@ const deployedContracts = {
                   internalType: "bool",
                   name: "paused",
                   type: "bool",
+                },
+                {
+                  internalType: "uint256",
+                  name: "createdAt",
+                  type: "uint256",
                 },
               ],
               internalType: "struct MACIWrapper.PollData[]",
