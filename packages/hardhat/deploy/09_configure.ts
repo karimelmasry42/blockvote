@@ -1,20 +1,39 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import fs from "fs";
-import { Keypair } from "maci-domainobjs";
+import { Keypair, PrivKey } from "maci-domainobjs";
 
 import { MACIWrapper, Verifier, VkRegistry, WrapperAwarePollFactory } from "../typechain-types";
 
 function fetchOrCreateKeyPair(filePath: string) {
   let keypair: Keypair | null = null;
   if (fs.existsSync(filePath)) {
-    const data = fs.readFileSync(filePath);
-    const jsonPair = JSON.parse(data.toString("utf-8"));
-    keypair = Keypair.fromJSON(jsonPair);
+    try {
+      const data = fs.readFileSync(filePath);
+      const jsonPair = JSON.parse(data.toString("utf-8"));
+
+      // Validation: Derive pubkey from privkey and check if it matches the stored one
+      const privKey = PrivKey.deserialize(jsonPair.privKey);
+      const derivedPubKey = new Keypair(privKey).pubKey.serialize();
+
+      if (derivedPubKey !== jsonPair.pubKey) {
+        console.warn(
+          `Inconsistent keypair in ${filePath}: privKey does not match pubKey. Repairing pubKey from privKey...`,
+        );
+        jsonPair.pubKey = derivedPubKey;
+        fs.writeFileSync(filePath, JSON.stringify(jsonPair, null, 2));
+      }
+
+      keypair = Keypair.fromJSON(jsonPair);
+    } catch (e) {
+      console.warn(`Error reading keypair in ${filePath}: ${e instanceof Error ? e.message : e}. Regenerating...`);
+    }
   }
+
   if (!keypair) {
     keypair = new Keypair();
     fs.writeFileSync(filePath, JSON.stringify(keypair.toJSON()));
+    console.log(`New coordinator keypair generated and saved to ${filePath}`);
   }
 
   return keypair as Keypair;

@@ -157,15 +157,16 @@ describe("WrapperAwarePoll fix verification", function () {
     await expect(poll.publishMessage(DUMMY_MESSAGE, freshEncPubKey())).to.not.be.reverted;
   });
   it("integration: admin closes poll and direct voting is blocked", async function () {
-  const { maciWrapper } = await setup();
+    const { maciWrapper } = await setup();
 
-  const { pollAddress } = await createTestPoll(maciWrapper);
-  const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
+    const { pollAddress } = await createTestPoll(maciWrapper);
+    const poll = await ethers.getContractAt("WrapperAwarePoll", pollAddress);
 
-  await (await maciWrapper.closePoll(0n)).wait();
+    await (await maciWrapper.closePoll(0n)).wait();
 
-  await expect(
-    poll.publishMessage(DUMMY_MESSAGE, freshEncPubKey()),
-  ).to.be.revertedWithCustomError(poll, "VotingPeriodOver");
-});
+    await expect(poll.publishMessage(DUMMY_MESSAGE, freshEncPubKey())).to.be.revertedWithCustomError(
+      poll,
+      "VotingPeriodOver",
+    );
+  });
 });

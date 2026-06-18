@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useAuthContext } from "~~/contexts/AuthContext";
-import { useScaffoldContractRead } from "~~/hooks/scaffold-eth";
 
 export function useAuthUserOnly({ inverted }: { inverted?: boolean }) {
   const router = useRouter();

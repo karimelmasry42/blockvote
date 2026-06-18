@@ -9,6 +9,7 @@ import { useContractRead, useContractWrite } from "wagmi";
 import PollAbi from "~~/abi/Poll";
 import VoteCard from "~~/components/card/VoteCard";
 import { useAuthContext } from "~~/contexts/AuthContext";
+import { useChainTimestamp } from "~~/hooks/useChainTimestamp";
 import { useFetchPoll } from "~~/hooks/useFetchPoll";
 import { getPollStatus } from "~~/hooks/useFetchPolls";
 import {
@@ -21,6 +22,7 @@ import {
 } from "~~/types/poll";
 import { getDataFromPinata } from "~~/utils/pinata";
 import { notification } from "~~/utils/scaffold-eth";
+import { getParsedError } from "~~/utils/scaffold-eth/getParsedError";
 
 export default function PollDetail({ id }: { id: bigint }) {
   const { data: poll, error, isLoading } = useFetchPoll(id);
@@ -35,6 +37,7 @@ export default function PollDetail({ id }: { id: bigint }) {
   const [status, setStatus] = useState<PollStatus>();
   const [voted, setVoted] = useState<boolean>(false);
   const [voting, setVoting] = useState<boolean>(false);
+  const chainTimestamp = useChainTimestamp();
 
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [initialVotes, setInitialVotes] = useState<{ index: number; votes: number }[]>([]);
@@ -199,14 +202,9 @@ export default function PollDetail({ id }: { id: bigint }) {
       })();
     }
 
-    const statusUpdateInterval = setInterval(() => {
-      setStatus(getPollStatus(poll));
-    }, 1000);
-
-    return () => {
-      clearInterval(statusUpdateInterval);
-    };
-  }, [poll, candidateOptions]);
+    const now = chainTimestamp ?? Math.round(new Date().getTime() / 1000);
+    setStatus(getPollStatus(poll, now));
+  }, [poll, candidateOptions, chainTimestamp]);
 
   const rawPollAddress = poll?.pollContracts.poll;
   const pollAddress = rawPollAddress && isAddress(rawPollAddress) ? (rawPollAddress as `0x${string}`) : undefined;
@@ -250,6 +248,10 @@ export default function PollDetail({ id }: { id: bigint }) {
       notification.error("Error casting vote. Please refresh the page and try again.");
       return;
     }
+    const currentPoll = poll;
+    const currentStateIndex = stateIndex;
+    const currentCoordinatorPubKey = coordinatorPubKey;
+    const currentKeypair = keypair;
 
     if (isAnyInvalid) {
       notification.error("Please enter a valid number of votes");
@@ -279,21 +281,19 @@ export default function PollDetail({ id }: { id: bigint }) {
       return;
     }
 
-    setVoting(true);
+    async function attemptVote() {
+      const votesToMessage = votes.map((v, i) =>
+        getMessageAndEncKeyPair(
+          currentStateIndex,
+          currentPoll.id,
+          BigInt(v.index),
+          BigInt(v.votes),
+          BigInt(votes.length - i),
+          currentCoordinatorPubKey,
+          currentKeypair,
+        ),
+      );
 
-    const votesToMessage = votes.map((v, i) =>
-      getMessageAndEncKeyPair(
-        stateIndex,
-        poll.id,
-        BigInt(v.index),
-        BigInt(v.votes),
-        BigInt(votes.length - i),
-        coordinatorPubKey,
-        keypair,
-      ),
-    );
-
-    try {
       if (votesToMessage.length === 1) {
         await publishMessage({
           args: [
@@ -319,13 +319,13 @@ export default function PollDetail({ id }: { id: bigint }) {
 
       notification.success("Vote casted successfully");
 
-      const storageKey = getVoteStorageKey(poll.id, stateIndex, poll.pollContracts.poll);
+      const storageKey = getVoteStorageKey(currentPoll.id, currentStateIndex, currentPoll.pollContracts.poll);
       window.localStorage.setItem(
         storageKey,
         JSON.stringify({
           votes,
-          pollName: poll.name,
-          optionNames: [...poll.options],
+          pollName: currentPoll.name,
+          optionNames: [...currentPoll.options],
         }),
       );
 
@@ -333,9 +333,15 @@ export default function PollDetail({ id }: { id: bigint }) {
       setInitialSelectedIndexes(votes.map(v => v.index));
       setVoted(true);
       setIsEditing(false);
-    } catch (err) {
+    }
+
+    setVoting(true);
+
+    try {
+      await attemptVote();
+    } catch (err: any) {
       console.log("err", err);
-      notification.error("Casting vote failed, please try again ");
+      notification.error(getParsedError(err));
     } finally {
       setVoting(false);
     }

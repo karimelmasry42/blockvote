@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
 import { useScaffoldContractRead } from "./scaffold-eth";
+import { useChainTimestamp } from "./useChainTimestamp";
 import { Poll, PollStatus, RawPoll, getCandidateOptions } from "~~/types/poll";
 
-export function getPollStatus(poll: RawPoll) {
-  const now = Math.round(new Date().getTime() / 1000);
+export function getPollStatus(poll: RawPoll, now = Math.round(new Date().getTime() / 1000)) {
+  const currentTime = BigInt(now);
 
-  if (poll.paused && poll.endTime > BigInt(now) && !poll.tallyJsonCID) {
+  if (poll.paused && poll.endTime > currentTime && !poll.tallyJsonCID) {
     return PollStatus.PAUSED;
   }
 
-  if (poll.startTime > BigInt(now)) {
+  if (poll.startTime > currentTime) {
     return PollStatus.NOT_STARTED;
   }
 
-  if (poll.endTime > BigInt(now)) {
+  if (poll.endTime > currentTime) {
     return PollStatus.OPEN;
   }
 
@@ -26,6 +27,7 @@ export function getPollStatus(poll: RawPoll) {
 
 export const useFetchPolls = (currentPage = 1, limit = 10, reversed = true) => {
   const [polls, setPolls] = useState<Poll[]>();
+  const chainTimestamp = useChainTimestamp();
   const { data: totalPolls, refetch: refetchTotalPolls } = useScaffoldContractRead({
     contractName: "MACIWrapper",
     functionName: "nextPollId",
@@ -43,31 +45,26 @@ export const useFetchPolls = (currentPage = 1, limit = 10, reversed = true) => {
       return;
     }
 
-    const interval = setInterval(() => {
-      const _polls: Poll[] = [];
+    const now = chainTimestamp ?? Math.round(new Date().getTime() / 1000);
+    const _polls: Poll[] = [];
 
-      for (const rawPoll of rawPolls) {
-        _polls.push({
-          ...rawPoll,
-          status: getPollStatus(rawPoll),
-          candidateOptions: getCandidateOptions(rawPoll.metadata, rawPoll.options),
-        });
-      }
-
-      const sortedPolls = _polls.sort((a, b) => {
-        const startDiff = Number(b.startTime) - Number(a.startTime);
-        if (startDiff !== 0) {
-          return startDiff;
-        }
-        return Number(b.id) - Number(a.id);
+    for (const rawPoll of rawPolls) {
+      _polls.push({
+        ...rawPoll,
+        status: getPollStatus(rawPoll, now),
+        candidateOptions: getCandidateOptions(rawPoll.metadata, rawPoll.options),
       });
-      setPolls(sortedPolls);
-    }, 1000);
+    }
 
-    return () => {
-      clearInterval(interval);
-    };
-  }, [rawPolls]);
+    const sortedPolls = _polls.sort((a, b) => {
+      const startDiff = Number(b.startTime) - Number(a.startTime);
+      if (startDiff !== 0) {
+        return startDiff;
+      }
+      return Number(b.id) - Number(a.id);
+    });
+    setPolls(sortedPolls);
+  }, [rawPolls, chainTimestamp]);
 
   function refetch() {
     return Promise.all([refetchTotalPolls(), refetchPolls()]);

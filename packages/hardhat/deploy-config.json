@@ -324,7 +324,7 @@
     },
     "Poll": {
       "pollDuration": 30,
-      "coordinatorPubkey": "macipk.8d558e1bd2d00768900af0c4e5f097b8572d20d52659c4b8a32cfe89b236be3e",
+      "coordinatorPubkey": "macipk.119f2df306319669276e19a9347d24a22e6f29e2a29ff5ca10686ba32fd8d2da",
       "useQuadraticVoting": false
     }
   },
@@ -408,7 +408,9 @@
     },
     "HatsGatekeeper": {
       "deploy": false,
-      "criterionHats": ["26960358043289970096177553829315270011263390106506980876069447401472"],
+      "criterionHats": [
+        "26960358043289970096177553829315270011263390106506980876069447401472"
+      ],
       "hatsProtocolAddress": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137"
     },
     "EASGatekeeper": {
@@ -479,7 +481,9 @@
     },
     "HatsGatekeeper": {
       "deploy": false,
-      "criterionHats": ["26960358043289970096177553829315270011263390106506980876069447401472"],
+      "criterionHats": [
+        "26960358043289970096177553829315270011263390106506980876069447401472"
+      ],
       "hatsProtocolAddress": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137"
     },
     "EASGatekeeper": {
@@ -550,7 +554,9 @@
     },
     "HatsGatekeeper": {
       "deploy": false,
-      "criterionHats": ["26960358043289970096177553829315270011263390106506980876069447401472"],
+      "criterionHats": [
+        "26960358043289970096177553829315270011263390106506980876069447401472"
+      ],
       "hatsProtocolAddress": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137"
     },
     "EASGatekeeper": {
@@ -621,7 +627,9 @@
     },
     "HatsGatekeeper": {
       "deploy": false,
-      "criterionHats": ["26960358043289970096177553829315270011263390106506980876069447401472"],
+      "criterionHats": [
+        "26960358043289970096177553829315270011263390106506980876069447401472"
+      ],
       "hatsProtocolAddress": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137"
     },
     "EASGatekeeper": {
@@ -692,7 +700,9 @@
     },
     "HatsGatekeeper": {
       "deploy": false,
-      "criterionHats": ["26960358043289970096177553829315270011263390106506980876069447401472"],
+      "criterionHats": [
+        "26960358043289970096177553829315270011263390106506980876069447401472"
+      ],
       "hatsProtocolAddress": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137"
     },
     "EASGatekeeper": {

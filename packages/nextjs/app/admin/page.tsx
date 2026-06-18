@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import CreatePollModal from "./_components/CreatePollModal";
 import EditPollNameModal from "./_components/EditPollNameModal";
+import GenerateProofModal from "./_components/GenerateProofModal";
 import PollStatusModal from "./_components/PollStatusModal";
+import { MdEdit } from "react-icons/md";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
 import { useAuthContext } from "~~/contexts/AuthContext";
 import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { useFetchPolls } from "~~/hooks/useFetchPolls";
 import { useTotalPages } from "~~/hooks/useTotalPages";
-import { Poll, PollStatus } from "~~/types/poll";
+import { CandidateOption, DEFAULT_CANDIDATE_IMAGE, Poll, PollStatus, getCandidateOptions } from "~~/types/poll";
 import { notification } from "~~/utils/scaffold-eth";
 
 export default function AdminPage() {
@@ -25,6 +28,7 @@ export default function AdminPage() {
   const [limit] = useState(10);
   const [selectedPollForStatusModal, setSelectedPollForStatusModal] = useState<Poll>();
   const [selectedPollForNameModal, setSelectedPollForNameModal] = useState<Poll>();
+  const [selectedPollForProofModal, setSelectedPollForProofModal] = useState<Poll>();
   const [closingPollId, setClosingPollId] = useState<bigint | null>(null);
   const [locallyClosedPollIds, setLocallyClosedPollIds] = useState<Set<string>>(new Set());
 
@@ -35,6 +39,8 @@ export default function AdminPage() {
     contractName: "MACIWrapper",
     functionName: "EDIT_NAME_WINDOW_SECONDS",
   });
+
+  const EDIT_NAME_WINDOW_SECONDS = editNameWindowSeconds ? Number(editNameWindowSeconds) : 300;
 
   const { writeAsync: pausePoll, isMining: isPausing } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
@@ -165,19 +171,54 @@ export default function AdminPage() {
               {polls.map(poll => {
                 const isLocallyClosed = locallyClosedPollIds.has(poll.id.toString());
                 const effectiveStatus = isLocallyClosed ? PollStatus.CLOSED : poll.status;
-                const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-                const editWindowOpen =
-                  editNameWindowSeconds !== undefined && nowSeconds < poll.createdAt + editNameWindowSeconds;
+                const candidateOptions: CandidateOption[] = getCandidateOptions(poll.metadata, poll.options);
+                const now = Math.floor(Date.now() / 1000);
+                const timeSinceStart = Number(poll.startTime) - now;
                 const canEditName =
-                  editWindowOpen &&
-                  effectiveStatus !== PollStatus.CLOSED &&
-                  effectiveStatus !== PollStatus.RESULT_COMPUTED;
-
+                  (effectiveStatus === PollStatus.OPEN ||
+                    effectiveStatus === PollStatus.PAUSED ||
+                    effectiveStatus === PollStatus.NOT_STARTED) &&
+                  timeSinceStart >= -EDIT_NAME_WINDOW_SECONDS;
                 return (
                   <tr key={poll.id.toString()}>
                     <td className="border border-slate-600 py-2 px-1 text-sm text-center">{poll.id.toString()}</td>
 
-                    <td className="border border-slate-600 py-2 px-1 text-sm">{poll.name}</td>
+                    <td className="border border-slate-600 py-2 px-1">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">{poll.name}</span>
+                          {canEditName && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPollForNameModal(poll)}
+                              className="p-1 rounded-full hover:bg-white/20 transition-all duration-200 hover:scale-110 active:scale-95"
+                              title="Edit poll name"
+                            >
+                              <MdEdit className="h-4 w-4 text-white" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {candidateOptions.slice(0, 4).map((option, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                              <div className="relative w-6 h-6 rounded-full overflow-hidden border border-slate-400 shrink-0">
+                                <Image
+                                  src={option.image || DEFAULT_CANDIDATE_IMAGE}
+                                  alt={option.name}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              </div>
+                              <span className="text-xs truncate max-w-[100px]">{option.name}</span>
+                            </div>
+                          ))}
+                          {candidateOptions.length > 4 && (
+                            <span className="text-xs">+{candidateOptions.length - 4} more</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
 
                     <td className="border border-slate-600 py-2 px-1 text-sm text-center">
                       {new Date(Number(poll.startTime) * 1000).toLocaleString()}
@@ -269,13 +310,23 @@ export default function AdminPage() {
                             </button>
                           </>
                         ) : effectiveStatus === PollStatus.CLOSED ? (
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPollForStatusModal(poll)}
-                            className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
-                          >
-                            Upload tally file
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPollForProofModal(poll)}
+                              className="rounded-md bg-secondary px-4 py-2 font-semibold text-white hover:bg-secondary/80"
+                            >
+                              Generate Proof
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPollForStatusModal(poll)}
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+                            >
+                              Upload tally file
+                            </button>
+                          </>
                         ) : effectiveStatus === PollStatus.RESULT_COMPUTED ? (
                           <Link
                             href={`/poll/${poll.id}`}
@@ -315,6 +366,13 @@ export default function AdminPage() {
         setOpen={() => setSelectedPollForNameModal(undefined)}
         show={Boolean(selectedPollForNameModal)}
         refetchPolls={refetchPolls}
+      />
+
+      <GenerateProofModal
+        poll={selectedPollForProofModal}
+        setOpen={() => setSelectedPollForProofModal(undefined)}
+        show={Boolean(selectedPollForProofModal)}
+        onSuccess={refetchPolls}
       />
     </div>
   );

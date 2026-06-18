@@ -59,7 +59,7 @@ export const HeaderMenuLinks = () => {
 
         return (
           <li key={href}>
-            <a
+            <Link
               href={href}
               className={`${
                 isActive ? "bg-secondary shadow-md" : ""
@@ -67,7 +67,7 @@ export const HeaderMenuLinks = () => {
             >
               {icon}
               <span>{label}</span>
-            </a>
+            </Link>
           </li>
         );
       })}
