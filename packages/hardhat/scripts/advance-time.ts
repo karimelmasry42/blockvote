@@ -20,17 +20,25 @@ async function main() {
   const seconds = Number(process.argv[2]) || 3600;
 
   const blockBefore = await hre.ethers.provider.getBlock("latest");
-  console.log(`Current block timestamp: ${blockBefore?.timestamp} (${new Date((blockBefore?.timestamp ?? 0) * 1000).toISOString()})`);
+  console.log(
+    `Current block timestamp: ${blockBefore?.timestamp} (${new Date(
+      (blockBefore?.timestamp ?? 0) * 1000,
+    ).toISOString()})`,
+  );
 
   await hre.network.provider.send("evm_increaseTime", [seconds]);
   await hre.network.provider.send("evm_mine");
 
   const blockAfter = await hre.ethers.provider.getBlock("latest");
   console.log(`Advanced by ${seconds} seconds`);
-  console.log(`New block timestamp:     ${blockAfter?.timestamp} (${new Date((blockAfter?.timestamp ?? 0) * 1000).toISOString()})`);
+  console.log(
+    `New block timestamp:     ${blockAfter?.timestamp} (${new Date(
+      (blockAfter?.timestamp ?? 0) * 1000,
+    ).toISOString()})`,
+  );
 }
 
-main().catch((err) => {
+main().catch(err => {
   console.error(err);
   process.exit(1);
 });

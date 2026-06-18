@@ -17,7 +17,7 @@ function readJsonFile(filePath: string): any {
   }
 }
 
-function writeJsonFile(filePath: string, data: any): void {
+function writeJsonFile(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
@@ -115,10 +115,15 @@ async function readOnChainCoordinatorPubKey() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { pollId, coordinatorPrivateKey } = body;
+    const { pollId: rawPollId, coordinatorPrivateKey } = body;
 
-    if (!pollId) {
+    if (rawPollId === undefined || rawPollId === null) {
       return NextResponse.json({ error: "pollId is required" }, { status: 400 });
+    }
+
+    const pollId = rawPollId.toString();
+    if (!/^\d+$/.test(pollId)) {
+      return NextResponse.json({ error: "Invalid pollId format" }, { status: 400 });
     }
 
     const coordinatorKeyPairPath = path.join(HARDFAT_DIR, "coordinatorKeyPair.json");
@@ -162,8 +167,8 @@ export async function POST(request: NextRequest) {
       try {
         await runCommand("npx", ["hardhat", "merge", "--poll", pollId.toString(), "--network", "localhost"]);
         break;
-      } catch (err: any) {
-        const errorMsg = err.message || "";
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "";
         if (errorMsg.includes("Voting period is not over")) {
           mergeAttempt++;
           if (mergeAttempt >= maxMergeAttempts) {
@@ -199,8 +204,8 @@ export async function POST(request: NextRequest) {
           "localhost",
         ]);
         break;
-      } catch (err: any) {
-        const errorMsg = err.message || "";
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : "";
         if (errorMsg.includes("Voting period is not over")) {
           proveAttempt++;
           if (proveAttempt >= maxProveAttempts) {
@@ -227,8 +232,9 @@ export async function POST(request: NextRequest) {
       tallyData,
       usedStoredCoordinatorKey: !coordinatorPrivateKey?.trim(),
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[tally-prove] Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to generate proof" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate proof";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

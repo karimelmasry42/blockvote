@@ -39,26 +39,26 @@ async function runCommand(command: string, args: string[]): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const seconds = body.seconds || 3600;
+    const rawSeconds = body.seconds || 3600;
+
+    // Sanitize seconds to prevent command injection
+    const seconds = rawSeconds.toString();
+    if (!/^\d+$/.test(seconds)) {
+      return NextResponse.json({ error: "Invalid seconds format" }, { status: 400 });
+    }
 
     console.log(`[clock-sync] Advancing blockchain time by ${seconds} seconds`);
 
-    await runCommand("npx", [
-      "hardhat",
-      "run",
-      "scripts/advance-time.ts",
-      seconds.toString(),
-      "--network",
-      "localhost",
-    ]);
+    await runCommand("npx", ["hardhat", "run", "scripts/advance-time.ts", seconds, "--network", "localhost"]);
 
     return NextResponse.json({
       success: true,
       message: `Advanced time by ${seconds} seconds`,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[clock-sync] Error:", error);
-    return NextResponse.json({ error: error.message || "Failed to sync clock" }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : "Failed to sync clock";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
