@@ -55,7 +55,7 @@ async function runCommand(command: string, args: string[]): Promise<string> {
 
 function extractPubkeyFromPrivkey(privKey: string): string {
   try {
-    return new Keypair(new PrivKey(privKey)).pubKey.serialize();
+    return new Keypair(PrivKey.deserialize(privKey)).pubKey.serialize();
   } catch {
     throw new Error("Invalid coordinator private key format");
   }
@@ -71,7 +71,10 @@ function loadCoordinatorKeyPair(filePath: string): { privKey: string; pubKey: st
   const derivedPubKey = extractPubkeyFromPrivkey(coordinatorKeyPair.privKey);
 
   if (derivedPubKey !== coordinatorKeyPair.pubKey) {
-    throw new Error("coordinatorKeyPair.json is inconsistent: privKey does not match pubKey");
+    const repairedKeyPair = { ...coordinatorKeyPair, pubKey: derivedPubKey };
+    writeJsonFile(filePath, repairedKeyPair);
+    console.warn("coordinatorKeyPair.json pubKey did not match privKey; repaired pubKey from privKey");
+    return repairedKeyPair;
   }
 
   return coordinatorKeyPair;
@@ -88,12 +91,16 @@ function loadMaciWrapperDeployment() {
   return deployment;
 }
 
-async function readOnChainCoordinatorPubKey() {
-  const deployment = loadMaciWrapperDeployment();
-  const publicClient = createPublicClient({
+function createLocalPublicClient() {
+  return createPublicClient({
     chain: localhost,
     transport: http("http://127.0.0.1:8545"),
   });
+}
+
+async function readOnChainCoordinatorPubKey() {
+  const deployment = loadMaciWrapperDeployment();
+  const publicClient = createLocalPublicClient();
 
   const coordinatorPubKey = await publicClient.readContract({
     address: deployment.address,
