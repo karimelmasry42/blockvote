@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import PollStatusModal from "./_components/PollStatusModal";
 import { MdEdit } from "react-icons/md";
 import { useAccount } from "wagmi";
 import Paginator from "~~/components/Paginator";
+import { useAuthContext } from "~~/contexts/AuthContext";
 import { useScaffoldContractRead, useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 import { useFetchPolls } from "~~/hooks/useFetchPolls";
 import { useTotalPages } from "~~/hooks/useTotalPages";
@@ -20,6 +21,7 @@ import { notification } from "~~/utils/scaffold-eth";
 export default function AdminPage() {
   const router = useRouter();
   const { address, isConnected, isConnecting, isReconnecting } = useAccount();
+  const { isOwner, isOwnerLoading } = useAuthContext();
 
   const [openCreatePollModal, setOpenCreatePollModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -30,10 +32,8 @@ export default function AdminPage() {
   const [closingPollId, setClosingPollId] = useState<bigint | null>(null);
   const [locallyClosedPollIds, setLocallyClosedPollIds] = useState<Set<string>>(new Set());
 
-  const { data: admin } = useScaffoldContractRead({
-    contractName: "MACIWrapper",
-    functionName: "owner",
-  });
+  const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
+  const totalPages = useTotalPages(totalPolls, limit);
 
   const { data: editNameWindowSeconds } = useScaffoldContractRead({
     contractName: "MACIWrapper",
@@ -41,9 +41,6 @@ export default function AdminPage() {
   });
 
   const EDIT_NAME_WINDOW_SECONDS = editNameWindowSeconds ? Number(editNameWindowSeconds) : 300;
-
-  const { totalPolls, polls, refetch: refetchPolls } = useFetchPolls(currentPage, limit);
-  const totalPages = useTotalPages(totalPolls, limit);
 
   const { writeAsync: pausePoll, isMining: isPausing } = useScaffoldContractWrite({
     contractName: "MACIWrapper",
@@ -63,12 +60,8 @@ export default function AdminPage() {
     args: [0n],
   });
 
-  const ownerLoaded = admin !== undefined;
+  const ownerLoaded = !isOwnerLoading;
   const walletLoaded = !isConnecting && !isReconnecting;
-  const isOwner = useMemo(() => {
-    if (!address || !admin) return false;
-    return address.toLowerCase() === String(admin).toLowerCase();
-  }, [address, admin]);
 
   useEffect(() => {
     if (!ownerLoaded || !walletLoaded) return;
@@ -77,6 +70,22 @@ export default function AdminPage() {
       router.replace("/polls");
     }
   }, [ownerLoaded, walletLoaded, isConnected, address, isOwner, router]);
+
+  useEffect(() => {
+    if (!polls || locallyClosedPollIds.size === 0) return;
+
+    setLocallyClosedPollIds(prev => {
+      let next: Set<string> | null = null;
+      for (const id of prev) {
+        const poll = polls.find(p => p.id.toString() === id);
+        if (poll && (poll.status === PollStatus.CLOSED || poll.status === PollStatus.RESULT_COMPUTED)) {
+          if (!next) next = new Set(prev);
+          next.delete(id);
+        }
+      }
+      return next ?? prev;
+    });
+  }, [polls, locallyClosedPollIds]);
   const handlePausePoll = async (pollId: bigint) => {
     try {
       await pausePoll({ args: [pollId] });
@@ -223,6 +232,35 @@ export default function AdminPage() {
 
                     <td className="border border-slate-600 py-2 px-1 text-sm">
                       <div className="flex flex-wrap justify-center gap-2">
+                        {canEditName && closingPollId !== poll.id ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPollForNameModal(poll)}
+                            className="rounded-md bg-yellow-500 px-4 py-2 font-semibold text-white hover:bg-yellow-600"
+                          >
+                            Edit Name
+                          </button>
+                        ) : effectiveStatus === PollStatus.OPEN ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handlePausePoll(poll.id)}
+                              disabled={isPausing || isClosing}
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Pause
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleClosePoll(poll.id)}
+                              disabled={isClosing}
+                              className="ml-2 rounded-md bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Close
+                            </button>
+                          </>
+                        ) : null}
                         {closingPollId === poll.id ? (
                           <button
                             type="button"
