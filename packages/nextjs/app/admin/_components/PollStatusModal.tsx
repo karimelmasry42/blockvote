@@ -64,7 +64,7 @@ export default function PollStatusModal({
       let ipfsHash: string;
       try {
         console.log("[tally-upload] Uploading tally to IPFS...");
-        ipfsHash = await uploadToPinata(data);
+        ipfsHash = await uploadToPinata(data, `tally-poll-${poll.id}.json`);
         console.log("[tally-upload] Uploaded to IPFS:", ipfsHash);
       } catch (err: any) {
         console.error("[tally-upload] IPFS upload failed:", err);

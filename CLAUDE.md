@@ -86,14 +86,10 @@ Copy from `.env.example`. Key variables:
 
 After a poll closes, results are generated in three steps. **All Hardhat commands must be run from `packages/hardhat/`.**
 
-> ⚠️ **Local Hardhat chain note**: Block timestamps only advance when blocks are mined, not in real time. If the merge step fails with "Voting period is not over" even though the poll appears closed in the UI, run `yarn hardhat run scripts/advance-time.ts --network localhost` to advance the chain clock by 1 hour.
->
-> **Why this happens**: The admin's "Close Poll" button updates `MACIWrapper.endTime` (the UI state), but MACI's merge task checks the immutable `deployTime + duration` from the underlying `Poll.sol` contract. These are independent — closing a poll early in the UI does not change the on-chain poll duration.
-
 ```bash
 cd packages/hardhat
 
-# Step 1: Merge signup and message trees
+# Step 1: Merge signup and message trees (uses force-merge script, no manual time advance needed)
 yarn hardhat merge --poll <POLL_ID>
 
 # Step 2: Generate proof and tally file
@@ -106,6 +102,12 @@ yarn hardhat prove \
 
 # Step 3: Upload tally-output/tally-poll-<POLL_ID>.json via Admin UI → Results appear
 ```
+
+> **How early close works**: When the admin closes a poll early, `MACIWrapper.closePoll()` updates `endTime` to the current block timestamp. The `WrapperAwarePoll` contract overrides both `isWithinVotingDeadline` (voting gate) and `isAfterVotingDeadline` (merge gate) to check this wrapper `endTime` rather than the immutable `deployTime + originalDuration`. This means merge/prove can run immediately after close — **no chain clock advancement needed**.
+>
+> **Poll duration architecture**: All Poll contracts are deployed with `duration = 0` (set in `MACIWrapper.createPoll()`). The real voting window is stored in the wrapper's `PollData.endTime` (= `startTime + duration_from_admin`). This design exists because downstream contracts (`MessageProcessor`, `Tally`) read the Poll's immutable `getDeployTimeAndDuration()` to check `_votingPeriodOver` (`block.timestamp - deployTime > duration`). With `duration = 0` this resolves to `block.timestamp > deployTime` which always passes after deployment, allowing proofs to be generated for early-closed polls. The wrapper's `endTime` is the sole arbiter of the voting window — enforced by the `WrapperAwarePoll` modifier overrides at the contract level.
+>
+> The frontend's `/api/tally/prove` route runs `scripts/force-merge.ts` which calls merge functions directly on the Poll contract.
 
 Output files go in `tally-output/` which is gitignored. Do not use `--output-dir .` as that places files in `packages/hardhat/` where they could be committed accidentally.
 
@@ -134,6 +136,7 @@ Confirmed changes (from Jira BLOCK project):
 - Poll ID visible in admin tab
 - "Voting hasn't started yet" message shown when poll is not yet active
 - Poll list sorted newest-first in both voter and admin views
+- Polls deployed with `duration = 0` in the Poll contract; real deadline stored in wrapper's `endTime` (see architecture note above)
 
 **Voting UI fixes**:
 - Quadratic voting disabled

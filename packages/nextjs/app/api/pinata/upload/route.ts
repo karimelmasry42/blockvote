@@ -36,22 +36,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "IPFS upload service is not configured" }, { status: 503 });
   }
 
-  let body: unknown;
+  let body: { _pinataData?: unknown; _pinataFileName?: string };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
+  const { _pinataData, _pinataFileName } = body;
+
+  if (_pinataData === undefined) {
+    return NextResponse.json({ error: "Missing _pinataData in request body" }, { status: 400 });
+  }
+
+  const pinataPayload: Record<string, unknown> = {
+    pinataContent: _pinataData,
+  };
+
+  if (_pinataFileName) {
+    pinataPayload.pinataMetadata = { name: _pinataFileName };
+  }
+
   try {
-    const { data } = await axios.post(
-      "https://api.pinata.cloud/pinning/pinJSONToIPFS",
-      { pinataContent: body },
-      {
-        headers: { Authorization: `Bearer ${pinataJWT}` },
-        timeout: 30_000,
-      },
-    );
+    const { data } = await axios.post("https://api.pinata.cloud/pinning/pinJSONToIPFS", pinataPayload, {
+      headers: { Authorization: `Bearer ${pinataJWT}` },
+      timeout: 30_000,
+    });
 
     console.log("[pinata/upload] Successfully pinned to IPFS:", data.IpfsHash);
     return NextResponse.json({ ipfsHash: data.IpfsHash });

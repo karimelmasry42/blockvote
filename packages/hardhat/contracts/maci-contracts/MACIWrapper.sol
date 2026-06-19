@@ -154,7 +154,7 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		uint256 pollId = nextPollId;
 
 		deployPoll(
-			_duration,
+			0,
 			treeDepths,
 			coordinatorPubKey,
 			verifier,
