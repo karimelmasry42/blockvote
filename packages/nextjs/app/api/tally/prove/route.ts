@@ -21,11 +21,12 @@ function writeJsonFile(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-async function runCommand(command: string, args: string[]): Promise<string> {
+async function runCommand(command: string, args: string[], extraEnv?: Record<string, string>): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: HARDFAT_DIR,
       shell: true,
+      env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
     });
 
     let stdout = "";
@@ -160,66 +161,24 @@ export async function POST(request: NextRequest) {
 
     const tallyFile = path.join(tallyOutputDir, `tally-poll-${pollId}.json`);
 
-    let mergeAttempt = 0;
-    const maxMergeAttempts = 3;
+    await runCommand("npx", ["hardhat", "run", "scripts/force-merge.ts", "--network", "localhost"], {
+      FORCE_MERGE_POLL_ID: pollId.toString(),
+    });
 
-    while (mergeAttempt < maxMergeAttempts) {
-      try {
-        await runCommand("npx", ["hardhat", "merge", "--poll", pollId.toString(), "--network", "localhost"]);
-        break;
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : "";
-        if (errorMsg.includes("Voting period is not over")) {
-          mergeAttempt++;
-          if (mergeAttempt >= maxMergeAttempts) {
-            return NextResponse.json(
-              { error: "Voting period is not over. Please wait for the poll to end or manually advance time." },
-              { status: 400 },
-            );
-          }
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        } else {
-          throw err;
-        }
-      }
-    }
-
-    let proveAttempt = 0;
-    const maxProveAttempts = 3;
-
-    while (proveAttempt < maxProveAttempts) {
-      try {
-        await runCommand("npx", [
-          "hardhat",
-          "prove",
-          "--poll",
-          pollId.toString(),
-          "--output-dir",
-          "tally-output",
-          "--coordinator-private-key",
-          resolvedCoordinatorPrivateKey,
-          "--tally-file",
-          tallyFile,
-          "--network",
-          "localhost",
-        ]);
-        break;
-      } catch (err: unknown) {
-        const errorMsg = err instanceof Error ? err.message : "";
-        if (errorMsg.includes("Voting period is not over")) {
-          proveAttempt++;
-          if (proveAttempt >= maxProveAttempts) {
-            return NextResponse.json(
-              { error: "Voting period is not over. Please wait for the poll to end or manually advance time." },
-              { status: 400 },
-            );
-          }
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        } else {
-          throw err;
-        }
-      }
-    }
+    await runCommand("npx", [
+      "hardhat",
+      "prove",
+      "--poll",
+      pollId.toString(),
+      "--output-dir",
+      "tally-output",
+      "--coordinator-private-key",
+      resolvedCoordinatorPrivateKey,
+      "--tally-file",
+      tallyFile,
+      "--network",
+      "localhost",
+    ]);
 
     const tallyData = readJsonFile(tallyFile);
     if (!tallyData) {

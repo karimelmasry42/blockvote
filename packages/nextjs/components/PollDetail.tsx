@@ -12,6 +12,7 @@ import { useAuthContext } from "~~/contexts/AuthContext";
 import { useChainTimestamp } from "~~/hooks/useChainTimestamp";
 import { useFetchPoll } from "~~/hooks/useFetchPoll";
 import { getPollStatus } from "~~/hooks/useFetchPolls";
+import scaffoldConfig from "~~/scaffold.config";
 import {
   CandidateOption,
   DEFAULT_CANDIDATE_IMAGE,
@@ -55,8 +56,12 @@ export default function PollDetail({ id }: { id: bigint }) {
   const usedWeight = useMemo(() => votes.reduce((sum, vote) => sum + vote.votes, 0), [votes]);
   const remainingWeight = useMemo(() => weightCap - usedWeight, [weightCap, usedWeight]);
 
-  const getVoteStorageKey = (pollId: bigint, voterIndex: bigint, pollAddress?: string) =>
-    `poll-vote:${pollAddress?.toLowerCase() || "unknown"}:${pollId.toString()}:${voterIndex.toString()}`;
+  const getVoteStorageKey = (pollId: bigint, voterIndex: bigint, pollAddress?: string, createdAt?: bigint) => {
+    const chainId = scaffoldConfig.targetNetworks[0].id;
+    return `poll-vote:${chainId}:${createdAt?.toString() || "?"}:${
+      pollAddress?.toLowerCase() || "unknown"
+    }:${pollId.toString()}:${voterIndex.toString()}`;
+  };
 
   const validateVotes = (voteList: { index: number; votes: number }[]) => {
     if (pollType === PollType.WEIGHTED_MULTIPLE_VOTE) {
@@ -116,14 +121,30 @@ export default function PollDetail({ id }: { id: bigint }) {
   }, [initialVotes, initialSelectedIndexes]);
 
   useEffect(() => {
-    if (!poll || stateIndex == null) {
+    if (!poll) {
       return;
     }
 
-    const storageKey = getVoteStorageKey(poll.id, stateIndex, poll.pollContracts.poll);
+    if (stateIndex == null) {
+      setVotes([]);
+      setSelectedIndexes([]);
+      setInitialVotes([]);
+      setInitialSelectedIndexes([]);
+      setVoted(false);
+      setIsEditing(false);
+      return;
+    }
+
+    const storageKey = getVoteStorageKey(poll.id, stateIndex, poll.pollContracts.poll, poll.createdAt);
     const stored = window.localStorage.getItem(storageKey);
 
     if (!stored) {
+      setVotes([]);
+      setSelectedIndexes([]);
+      setInitialVotes([]);
+      setInitialSelectedIndexes([]);
+      setVoted(false);
+      setIsEditing(false);
       return;
     }
 
@@ -148,9 +169,21 @@ export default function PollDetail({ id }: { id: bigint }) {
         setVoted(true);
       } else {
         window.localStorage.removeItem(storageKey);
+        setVotes([]);
+        setSelectedIndexes([]);
+        setInitialVotes([]);
+        setInitialSelectedIndexes([]);
+        setVoted(false);
+        setIsEditing(false);
       }
     } catch {
       window.localStorage.removeItem(storageKey);
+      setVotes([]);
+      setSelectedIndexes([]);
+      setInitialVotes([]);
+      setInitialSelectedIndexes([]);
+      setVoted(false);
+      setIsEditing(false);
     }
   }, [poll, stateIndex]);
 
@@ -200,6 +233,8 @@ export default function PollDetail({ id }: { id: bigint }) {
           notification.error("Failed to load poll results from IPFS");
         }
       })();
+    } else {
+      setResult(null);
     }
 
     const now = chainTimestamp ?? Math.round(new Date().getTime() / 1000);
@@ -319,7 +354,12 @@ export default function PollDetail({ id }: { id: bigint }) {
 
       notification.success("Vote casted successfully");
 
-      const storageKey = getVoteStorageKey(currentPoll.id, currentStateIndex, currentPoll.pollContracts.poll);
+      const storageKey = getVoteStorageKey(
+        currentPoll.id,
+        currentStateIndex,
+        currentPoll.pollContracts.poll,
+        currentPoll.createdAt,
+      );
       window.localStorage.setItem(
         storageKey,
         JSON.stringify({
