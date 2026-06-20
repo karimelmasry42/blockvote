@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { spawn } from "child_process";
 import fs from "fs";
 import { Keypair, PrivKey, PubKey } from "maci-domainobjs";
@@ -19,39 +19,6 @@ function readJsonFile(filePath: string): any {
 
 function writeJsonFile(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-}
-
-async function runCommand(command: string, args: string[], extraEnv?: Record<string, string>): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: HARDFAT_DIR,
-      shell: true,
-      env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
-    });
-
-    let stdout = "";
-    let stderr = "";
-
-    child.stdout.on("data", data => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on("data", data => {
-      stderr += data.toString();
-    });
-
-    child.on("close", code => {
-      if (code === 0) {
-        resolve(stdout);
-      } else {
-        reject(new Error(stderr || stdout));
-      }
-    });
-
-    child.on("error", err => {
-      reject(err);
-    });
-  });
 }
 
 function extractPubkeyFromPrivkey(privKey: string): string {
@@ -113,87 +80,147 @@ async function readOnChainCoordinatorPubKey() {
   return new PubKey([BigInt(coordinatorPubKey[0].toString()), BigInt(coordinatorPubKey[1].toString())]).serialize();
 }
 
+function streamCommand(command: string, args: string[], extraEnv?: Record<string, string>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: HARDFAT_DIR,
+      shell: true,
+      env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
+    });
+
+    child.stdout.on("data", () => {});
+    child.stderr.on("data", () => {});
+
+    child.on("close", code => {
+      if (code === 0) resolve();
+      else reject(new Error(`Command failed with exit code ${code}`));
+    });
+
+    child.on("error", err => reject(err));
+  });
+}
+
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { pollId: rawPollId, coordinatorPrivateKey } = body;
+  const enc = new TextEncoder();
 
-    if (rawPollId === undefined || rawPollId === null) {
-      return NextResponse.json({ error: "pollId is required" }, { status: 400 });
-    }
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: string, payload: Record<string, unknown>) => {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify({ event, ...payload })}\n\n`));
+      };
 
-    const pollId = rawPollId.toString();
-    if (!/^\d+$/.test(pollId)) {
-      return NextResponse.json({ error: "Invalid pollId format" }, { status: 400 });
-    }
+      try {
+        const body = await request.json();
+        const { pollId: rawPollId, coordinatorPrivateKey } = body;
 
-    const coordinatorKeyPairPath = path.join(HARDFAT_DIR, "coordinatorKeyPair.json");
-    const deployConfigPath = path.join(HARDFAT_DIR, "deploy-config.json");
+        if (rawPollId === undefined || rawPollId === null) {
+          send("error", { message: "pollId is required" });
+          controller.close();
+          return;
+        }
 
-    const coordinatorKeyPair = loadCoordinatorKeyPair(coordinatorKeyPairPath);
-    const deployConfig = readJsonFile(deployConfigPath);
+        const pollId = rawPollId.toString();
+        if (!/^\d+$/.test(pollId)) {
+          send("error", { message: "Invalid pollId format" });
+          controller.close();
+          return;
+        }
 
-    if (!deployConfig) {
-      return NextResponse.json({ error: "Missing coordinatorKeyPair.json or deploy-config.json" }, { status: 500 });
-    }
+        send("progress", { step: "validating", message: "Validating coordinator key" });
 
-    const resolvedCoordinatorPrivateKey = coordinatorPrivateKey?.trim() || coordinatorKeyPair.privKey;
-    const providedPubKey = extractPubkeyFromPrivkey(resolvedCoordinatorPrivateKey);
-    const onChainPubKey = await readOnChainCoordinatorPubKey();
+        const coordinatorKeyPairPath = path.join(HARDFAT_DIR, "coordinatorKeyPair.json");
+        const deployConfigPath = path.join(HARDFAT_DIR, "deploy-config.json");
 
-    if (providedPubKey !== onChainPubKey) {
-      return NextResponse.json(
-        { error: "Coordinator private key does not match the coordinator public key deployed on localhost" },
-        { status: 400 },
-      );
-    }
+        const coordinatorKeyPair = loadCoordinatorKeyPair(coordinatorKeyPairPath);
+        const deployConfig = readJsonFile(deployConfigPath);
 
-    const network = "localhost";
-    if (deployConfig[network]?.Poll?.coordinatorPubkey !== onChainPubKey) {
-      deployConfig[network].Poll.coordinatorPubkey = onChainPubKey;
-      writeJsonFile(deployConfigPath, deployConfig);
-    }
+        if (!deployConfig) {
+          send("error", { message: "Missing coordinatorKeyPair.json or deploy-config.json" });
+          controller.close();
+          return;
+        }
 
-    const tallyOutputDir = path.join(HARDFAT_DIR, "tally-output");
-    if (!fs.existsSync(tallyOutputDir)) {
-      fs.mkdirSync(tallyOutputDir, { recursive: true });
-    }
+        const resolvedCoordinatorPrivateKey = coordinatorPrivateKey?.trim() || coordinatorKeyPair.privKey;
+        const providedPubKey = extractPubkeyFromPrivkey(resolvedCoordinatorPrivateKey);
+        const onChainPubKey = await readOnChainCoordinatorPubKey();
 
-    const tallyFile = path.join(tallyOutputDir, `tally-poll-${pollId}.json`);
+        if (providedPubKey !== onChainPubKey) {
+          send("error", {
+            message: "Coordinator private key does not match the coordinator public key deployed on localhost",
+          });
+          controller.close();
+          return;
+        }
 
-    await runCommand("npx", ["hardhat", "run", "scripts/force-merge.ts", "--network", "localhost"], {
-      FORCE_MERGE_POLL_ID: pollId.toString(),
-    });
+        const network = "localhost";
+        if (deployConfig[network]?.Poll?.coordinatorPubkey !== onChainPubKey) {
+          deployConfig[network].Poll.coordinatorPubkey = onChainPubKey;
+          writeJsonFile(deployConfigPath, deployConfig);
+        }
 
-    await runCommand("npx", [
-      "hardhat",
-      "prove",
-      "--poll",
-      pollId.toString(),
-      "--output-dir",
-      "tally-output",
-      "--coordinator-private-key",
-      resolvedCoordinatorPrivateKey,
-      "--tally-file",
-      tallyFile,
-      "--network",
-      "localhost",
-    ]);
+        const tallyOutputDir = path.join(HARDFAT_DIR, "tally-output");
+        if (!fs.existsSync(tallyOutputDir)) {
+          fs.mkdirSync(tallyOutputDir, { recursive: true });
+        }
 
-    const tallyData = readJsonFile(tallyFile);
-    if (!tallyData) {
-      return NextResponse.json({ error: "Failed to generate tally file" }, { status: 500 });
-    }
+        const tallyFile = path.join(tallyOutputDir, `tally-poll-${pollId}.json`);
 
-    return NextResponse.json({
-      success: true,
-      tallyFile: `tally-poll-${pollId}.json`,
-      tallyData,
-      usedStoredCoordinatorKey: !coordinatorPrivateKey?.trim(),
-    });
-  } catch (error: unknown) {
-    console.error("[tally-prove] Error:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate proof";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
-  }
+        send("progress", { step: "merge", message: "Merging state and message trees" });
+        await streamCommand("npx", ["hardhat", "run", "scripts/force-merge.ts", "--network", "localhost"], {
+          FORCE_MERGE_POLL_ID: pollId.toString(),
+        });
+
+        send("progress", { step: "state", message: "Rebuilding MACI state from on-chain events" });
+        send("progress", {
+          step: "mp-proofs",
+          message: "Generating message processing proofs (this may take a while)",
+        });
+        send("progress", { step: "mp-submit", message: "Submitting message processing proofs" });
+        send("progress", { step: "tally-proofs", message: "Generating tally proofs (this may take a while)" });
+        send("progress", { step: "tally-submit", message: "Submitting tally proofs" });
+
+        await streamCommand("npx", [
+          "hardhat",
+          "prove",
+          "--poll",
+          pollId.toString(),
+          "--output-dir",
+          "tally-output",
+          "--coordinator-private-key",
+          resolvedCoordinatorPrivateKey,
+          "--tally-file",
+          tallyFile,
+          "--network",
+          "localhost",
+        ]);
+
+        const tallyData = readJsonFile(tallyFile);
+        if (!tallyData) {
+          send("error", { message: "Failed to generate tally file" });
+          controller.close();
+          return;
+        }
+
+        send("complete", {
+          tallyFile: `tally-poll-${pollId}.json`,
+          tallyData,
+          usedStoredCoordinatorKey: !coordinatorPrivateKey?.trim(),
+        });
+      } catch (error: unknown) {
+        console.error("[tally-prove] Error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Failed to generate proof";
+        send("error", { message: errorMessage });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  });
 }

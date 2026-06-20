@@ -2,7 +2,7 @@ import { useAuthContext } from "~~/contexts/AuthContext";
 import { useScaffoldContractWrite } from "~~/hooks/scaffold-eth";
 
 export default function RegisterButton({
-  label = "Get Started",
+  label = "Sign In",
   generateLabel,
   compact = false,
 }: {

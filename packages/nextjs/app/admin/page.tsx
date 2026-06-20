@@ -246,7 +246,7 @@ export default function AdminPage() {
                               type="button"
                               onClick={() => handlePausePoll(poll.id)}
                               disabled={isPausing || isClosing}
-                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-content hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Pause
                             </button>
@@ -266,7 +266,7 @@ export default function AdminPage() {
                               type="button"
                               onClick={() => handleResumePoll(poll.id)}
                               disabled={isResuming || isClosing}
-                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-content hover:bg-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Resume
                             </button>
@@ -285,7 +285,7 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => setSelectedPollForProofModal(poll)}
-                              className="rounded-md bg-secondary px-4 py-2 font-semibold text-white hover:bg-secondary/80"
+                              className="rounded-md bg-secondary px-4 py-2 font-semibold text-neutral hover:bg-secondary/80"
                             >
                               Generate Proof
                             </button>
@@ -293,7 +293,7 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => setSelectedPollForStatusModal(poll)}
-                              className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+                              className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-content hover:bg-primary/80"
                             >
                               Upload tally file
                             </button>
@@ -301,7 +301,7 @@ export default function AdminPage() {
                         ) : effectiveStatus === PollStatus.RESULT_COMPUTED ? (
                           <Link
                             href={`/polls/${poll.id}`}
-                            className="rounded-md bg-primary px-4 py-2 font-semibold text-white hover:bg-primary/80"
+                            className="rounded-md bg-primary px-4 py-2 font-semibold text-primary-content hover:bg-primary/80"
                           >
                             View Results
                           </Link>
@@ -344,6 +344,10 @@ export default function AdminPage() {
         setOpen={() => setSelectedPollForProofModal(undefined)}
         show={Boolean(selectedPollForProofModal)}
         onSuccess={refetchPolls}
+        onUploadTally={poll => {
+          setSelectedPollForProofModal(undefined);
+          setSelectedPollForStatusModal(poll);
+        }}
       />
     </div>
   );
