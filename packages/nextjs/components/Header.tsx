@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccount } from "wagmi";
@@ -29,18 +29,21 @@ const adminPageLink: HeaderMenuLink = {
 };
 
 export const HeaderMenuLinks = () => {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const pathname = usePathname();
   const { isConnected } = useAccount();
   const { isRegistered, isOwner, owner } = useAuthContext();
 
-  const canSeePolls = isConnected;
+  const canSeePolls = isConnected && (isRegistered || isOwner);
 
   const normalLinks = [
     {
       label: "Home",
       href: "/",
     },
-    ...(canSeePolls
+    ...(mounted && canSeePolls
       ? [
           {
             label: "Polls",
@@ -49,7 +52,7 @@ export const HeaderMenuLinks = () => {
           },
         ]
       : []),
-    ...(isOwner ? [adminPageLink, debugContractsLink] : []),
+    ...(mounted && isOwner ? [adminPageLink, debugContractsLink] : []),
   ];
 
   return (
@@ -72,7 +75,7 @@ export const HeaderMenuLinks = () => {
         );
       })}
 
-      {isConnected && !isRegistered && owner !== undefined && !isOwner && (
+      {mounted && isConnected && !isRegistered && owner !== undefined && !isOwner && (
         <li className="flex items-center">
           <RegisterButton label="Register to Vote" compact />
         </li>

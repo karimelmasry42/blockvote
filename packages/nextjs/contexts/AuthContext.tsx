@@ -33,12 +33,32 @@ export default function AuthContextProvider({ children }: { children: React.Reac
     setSignatureMessage(`Login to ${window.location.origin}`);
   }, []);
 
+  const storageKey = (addr: string) => `maci-signature-${getAddress(addr)}`;
+
+  useEffect(() => {
+    if (!address) return;
+
+    const stored = sessionStorage.getItem(storageKey(address));
+    if (stored) {
+      try {
+        const userKeyPair = new Keypair(new PrivKey(stored));
+        setKeyPair(userKeyPair);
+        return;
+      } catch {
+        sessionStorage.removeItem(storageKey(address));
+      }
+    }
+
+    setKeyPair(null);
+  }, [address]);
+
   const generateKeypair = useCallback(() => {
     if (!address || !isConnected || !signatureMessage) return;
 
     (async () => {
       try {
         const signature = await signMessageAsync();
+        sessionStorage.setItem(storageKey(address), signature);
         const userKeyPair = new Keypair(new PrivKey(signature));
         setKeyPair(userKeyPair);
       } catch (err) {
@@ -46,10 +66,6 @@ export default function AuthContextProvider({ children }: { children: React.Reac
       }
     })();
   }, [address, isConnected, signatureMessage, signMessageAsync]);
-
-  useEffect(() => {
-    setKeyPair(null);
-  }, [address]);
 
   const {
     data: isRegistered,
