@@ -96,7 +96,28 @@ function extractFailureReason(output: string): string | null {
   return signalLine ?? lines[lines.length - 1] ?? null;
 }
 
-function streamCommand(command: string, args: string[], extraEnv?: Record<string, string>): Promise<void> {
+// CLI flags whose following value is a secret and must never be logged or
+// returned to the client (e.g. the coordinator private key).
+const SECRET_FLAGS = new Set(["--coordinator-private-key"]);
+const REDACTED = "***REDACTED***";
+
+// Mask the value following any secret flag when rendering the command line.
+function redactArgs(args: string[]): string {
+  return args.map((arg, i) => (i > 0 && SECRET_FLAGS.has(args[i - 1]) ? REDACTED : arg)).join(" ");
+}
+
+// Strip known secret values out of captured tool output before it is logged or
+// surfaced, in case a tool ever echoes them back.
+function redactSecrets(text: string, secrets: string[]): string {
+  return secrets.reduce((acc, secret) => (secret ? acc.split(secret).join(REDACTED) : acc), text);
+}
+
+function streamCommand(
+  command: string,
+  args: string[],
+  extraEnv?: Record<string, string>,
+  secrets: string[] = [],
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: HARDFAT_DIR,
@@ -124,9 +145,11 @@ function streamCommand(command: string, args: string[], extraEnv?: Record<string
         return;
       }
       // Surface the underlying tool output on the server, and bubble up the
-      // most relevant line so the client sees the actual cause.
-      console.error(`[tally-prove] \`${command} ${args.join(" ")}\` exited with code ${code}:\n${captured}`);
-      const reason = extractFailureReason(captured);
+      // most relevant line so the client sees the actual cause — with any
+      // secret flag values redacted from both.
+      const safeOutput = redactSecrets(captured, secrets);
+      console.error(`[tally-prove] \`${command} ${redactArgs(args)}\` exited with code ${code}:\n${safeOutput}`);
+      const reason = extractFailureReason(safeOutput);
       reject(
         new Error(reason ? `${command} failed (exit ${code}): ${reason}` : `Command failed with exit code ${code}`),
       );
@@ -215,20 +238,25 @@ export async function POST(request: NextRequest) {
         send("progress", { step: "tally-proofs", message: "Generating tally proofs (this may take a while)" });
         send("progress", { step: "tally-submit", message: "Submitting tally proofs" });
 
-        await streamCommand("npx", [
-          "hardhat",
-          "prove",
-          "--poll",
-          pollId.toString(),
-          "--output-dir",
-          "tally-output",
-          "--coordinator-private-key",
-          resolvedCoordinatorPrivateKey,
-          "--tally-file",
-          tallyFile,
-          "--network",
-          "localhost",
-        ]);
+        await streamCommand(
+          "npx",
+          [
+            "hardhat",
+            "prove",
+            "--poll",
+            pollId.toString(),
+            "--output-dir",
+            "tally-output",
+            "--coordinator-private-key",
+            resolvedCoordinatorPrivateKey,
+            "--tally-file",
+            tallyFile,
+            "--network",
+            "localhost",
+          ],
+          undefined,
+          [resolvedCoordinatorPrivateKey],
+        );
 
         const tallyData = readJsonFile(tallyFile);
         if (!tallyData) {
