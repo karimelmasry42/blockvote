@@ -150,11 +150,40 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 		// TODO: check if the number of options are more than limit
 		require(isQv == Mode.NON_QV, "Quadratic voting is disabled");
 		require(_options.length >= 2, "A poll must have at least 2 candidates");
-		
+		require(
+			_startTime >= block.timestamp,
+			"Start time must be now or in future"
+		);
+		require(_duration > 0, "Duration must be greater than 0");
+
 		uint256 pollId = nextPollId;
 
+		uint256 endTime = _startTime + _duration;
+
+		// Deploy the underlying MACI Poll with a duration that makes the tally
+		// circuit's pollEndTimestamp (= deployTime + duration, read on-chain by
+		// MessageProcessor/Tally and verified inside the proof) equal this
+		// poll's voting-close time. deployTime equals block.timestamp here (same
+		// transaction), so deployTime + pollDuration == endTime.
+		//
+		// Why this matters: the MACI message-processing circuit only accepts a
+		// vote whose signer registered at a timestamp <= pollEndTimestamp. A
+		// voter who signs up *during* the voting window registers after the poll
+		// is deployed, so if the Poll were deployed with duration = 0 (making
+		// pollEndTimestamp == deployTime) their vote would break tally-proof
+		// generation. Using the real voting window fixes that.
+		//
+		// Trade-off: MessageProcessor/Tally._votingPeriodOver then requires
+		// block.timestamp > deployTime + pollDuration (== endTime) before proofs
+		// can be generated. The /api/tally/prove route fast-forwards the local
+		// chain clock automatically so early-closed polls can still be tallied
+		// immediately. Wrapper-side pause / startTime / early-endTime gating is
+		// unaffected: WrapperAwarePoll's modifier overrides ignore this duration
+		// and read MACIWrapper's PollData instead.
+		uint256 pollDuration = endTime - block.timestamp;
+
 		deployPoll(
-			0,
+			pollDuration,
 			treeDepths,
 			coordinatorPubKey,
 			verifier,
@@ -168,14 +197,6 @@ contract MACIWrapper is MACI, Ownable(msg.sender) {
 
 		// encode options to bytes for retrieval
 		bytes memory encodedOptions = abi.encode(_options);
-
-		require(
-			_startTime >= block.timestamp,
-			"Start time must be now or in future"
-		);
-		require(_duration > 0, "Duration must be greater than 0");
-
-		uint256 endTime = _startTime + _duration;
 
 		// create poll
 		_polls[pollId] = PollData({

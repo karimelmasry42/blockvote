@@ -12,16 +12,18 @@ import { IWrapperPollGate } from "./interfaces/IWrapperPollGate.sol";
 ///         those three controls exist only in wrapper storage and can be
 ///         bypassed by calling Poll.publishMessage directly.
 ///
-///         IMPORTANT: Polls deployed through this factory have duration = 0
-///         (set during MACIWrapper.createPoll).  All time management is
-///         delegated to the wrapper's startTime / endTime stored in
-///         MACIWrapper.  This is necessary because downstream contracts
-///         (MessageProcessor, Tally) read the Poll's immutable
-///         getDeployTimeAndDuration() to check _votingPeriodOver; with
-///         duration = 0 the check resolves to
-///         block.timestamp > deployTime which passes after
-///         deployment.  The wrapper's PollData.endTime provides the real
-///         voting deadline and is enforced by the overridden modifiers below.
+///         Time management is delegated to the wrapper's startTime / endTime
+///         stored in MACIWrapper: the modifier overrides below ignore the
+///         inherited Poll duration entirely and gate on the wrapper's PollData.
+///
+///         The Poll's immutable duration (set by MACIWrapper.createPoll to the
+///         real voting window, deployTime + duration == endTime) is still used
+///         by downstream contracts (MessageProcessor, Tally) for two things:
+///         the _votingPeriodOver gate, and the pollEndTimestamp public input
+///         that the tally circuit verifies. A real duration is required there
+///         so the circuit accepts voters who sign up during the voting window
+///         (see MACIWrapper.createPoll for the full rationale). Wrapper-side
+///         pause / startTime / early-close gating is independent of it.
 contract WrapperAwarePoll is Poll {
     error PollIsPaused();
     error VotingNotStarted();
@@ -42,8 +44,8 @@ contract WrapperAwarePoll is Poll {
 
     /// @dev Overrides Poll's isWithinVotingDeadline so that all temporal
     ///      gating comes from the wrapper (pause / startTime / endTime).
-    ///      The inherited check using the immutable duration is omitted
-    ///      because the contract is always deployed with duration = 0.
+    ///      The inherited check using the immutable duration is replaced
+    ///      entirely by the wrapper's startTime / endTime.
     modifier isWithinVotingDeadline() override {
         (bool paused, uint256 startTime, uint256 endTime) = IWrapperPollGate(wrapper)
             .getPollStateByAddress(address(this));
@@ -55,10 +57,9 @@ contract WrapperAwarePoll is Poll {
         _;
     }
 
-    /// @dev Overrides Poll's isAfterVotingDeadline to allow merge when the
-    ///      wrapper has closed the poll early, even if deployTime+duration
-    ///      has not yet elapsed.  Because duration is always 0 the inherited
-    ///      check is replaced entirely by the wrapper's endTime.
+    /// @dev Overrides Poll's isAfterVotingDeadline to allow merge as soon as
+    ///      the wrapper's endTime has passed (including when the poll was
+    ///      closed early), regardless of the inherited deployTime + duration.
     modifier isAfterVotingDeadline() override {
         (bool paused, uint256 startTime, uint256 endTime) = IWrapperPollGate(wrapper)
             .getPollStateByAddress(address(this));
