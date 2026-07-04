@@ -51,6 +51,33 @@ async function main() {
   const startBalance = await hre.ethers.provider.getBalance(deployer);
   console.log("Start balance: ", Number(startBalance / 10n ** 12n) / 1e6);
 
+  // Step 0: fast-forward the chain clock past the poll's voting deadline.
+  //
+  // Polls are deployed with a real duration (so the tally circuit accepts
+  // voters who signed up during the voting window — see MACIWrapper.createPoll).
+  // The trade-off is that MessageProcessor/Tally._votingPeriodOver requires
+  // `block.timestamp - deployTime > duration` before proofs can be generated.
+  // On a local Hardhat node the clock only moves when blocks are mined, so for
+  // an early-closed (or just-ended) poll we advance it here automatically. This
+  // makes the tally flow fully self-contained — no manual clock advancement.
+  // Only runs on the local dev network; on a public testnet you must wait for
+  // the real deadline to pass.
+  if (hre.network.name === "localhost" || hre.network.name === "hardhat") {
+    const [deployTime, duration] = await pollContract.getDeployTimeAndDuration();
+    const votingDeadline = BigInt(deployTime) + BigInt(duration);
+    const latestBlock = await hre.ethers.provider.getBlock("latest");
+    const now = BigInt(latestBlock?.timestamp ?? 0);
+
+    if (now <= votingDeadline) {
+      const target = Number(votingDeadline + 1n);
+      console.log(`Advancing chain clock to ${target} (poll voting deadline + 1s) so proofs can be generated...`);
+      await hre.network.provider.send("evm_setNextBlockTimestamp", [target]);
+      await hre.network.provider.send("evm_mine");
+    } else {
+      console.log("Chain clock already past poll voting deadline; no time advance needed");
+    }
+  }
+
   // Step 1: merge signups
   if (!(await pollContract.stateMerged())) {
     console.log("Merging signups...");

@@ -80,7 +80,44 @@ async function readOnChainCoordinatorPubKey() {
   return new PubKey([BigInt(coordinatorPubKey[0].toString()), BigInt(coordinatorPubKey[1].toString())]).serialize();
 }
 
-function streamCommand(command: string, args: string[], extraEnv?: Record<string, string>): Promise<void> {
+// Pull the most informative line out of captured command output so the error
+// reported to the client is actionable instead of a bare exit code. Hardhat /
+// snarkjs print the real cause (e.g. a circuit "Assert Failed") to stderr.
+function extractFailureReason(output: string): string | null {
+  const lines = output
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const signalLine = [...lines]
+    .reverse()
+    .find(line => /error|assert|failed|revert|cannot|invalid|ENOENT|not found/i.test(line));
+
+  return signalLine ?? lines[lines.length - 1] ?? null;
+}
+
+// CLI flags whose following value is a secret and must never be logged or
+// returned to the client (e.g. the coordinator private key).
+const SECRET_FLAGS = new Set(["--coordinator-private-key"]);
+const REDACTED = "***REDACTED***";
+
+// Mask the value following any secret flag when rendering the command line.
+function redactArgs(args: string[]): string {
+  return args.map((arg, i) => (i > 0 && SECRET_FLAGS.has(args[i - 1]) ? REDACTED : arg)).join(" ");
+}
+
+// Strip known secret values out of captured tool output before it is logged or
+// surfaced, in case a tool ever echoes them back.
+function redactSecrets(text: string, secrets: string[]): string {
+  return secrets.reduce((acc, secret) => (secret ? acc.split(secret).join(REDACTED) : acc), text);
+}
+
+function streamCommand(
+  command: string,
+  args: string[],
+  extraEnv?: Record<string, string>,
+  secrets: string[] = [],
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: HARDFAT_DIR,
@@ -88,12 +125,34 @@ function streamCommand(command: string, args: string[], extraEnv?: Record<string
       env: extraEnv ? { ...process.env, ...extraEnv } : undefined,
     });
 
-    child.stdout.on("data", () => {});
-    child.stderr.on("data", () => {});
+    // Keep a bounded tail of the child output so a failing command can report
+    // why it failed without buffering the (potentially huge) proof-gen logs.
+    let captured = "";
+    const MAX_CAPTURED = 16_000;
+    const capture = (chunk: Buffer) => {
+      captured += chunk.toString();
+      if (captured.length > MAX_CAPTURED) {
+        captured = captured.slice(captured.length - MAX_CAPTURED);
+      }
+    };
+
+    child.stdout.on("data", capture);
+    child.stderr.on("data", capture);
 
     child.on("close", code => {
-      if (code === 0) resolve();
-      else reject(new Error(`Command failed with exit code ${code}`));
+      if (code === 0) {
+        resolve();
+        return;
+      }
+      // Surface the underlying tool output on the server, and bubble up the
+      // most relevant line so the client sees the actual cause — with any
+      // secret flag values redacted from both.
+      const safeOutput = redactSecrets(captured, secrets);
+      console.error(`[tally-prove] \`${command} ${redactArgs(args)}\` exited with code ${code}:\n${safeOutput}`);
+      const reason = extractFailureReason(safeOutput);
+      reject(
+        new Error(reason ? `${command} failed (exit ${code}): ${reason}` : `Command failed with exit code ${code}`),
+      );
     });
 
     child.on("error", err => reject(err));
@@ -179,20 +238,25 @@ export async function POST(request: NextRequest) {
         send("progress", { step: "tally-proofs", message: "Generating tally proofs (this may take a while)" });
         send("progress", { step: "tally-submit", message: "Submitting tally proofs" });
 
-        await streamCommand("npx", [
-          "hardhat",
-          "prove",
-          "--poll",
-          pollId.toString(),
-          "--output-dir",
-          "tally-output",
-          "--coordinator-private-key",
-          resolvedCoordinatorPrivateKey,
-          "--tally-file",
-          tallyFile,
-          "--network",
-          "localhost",
-        ]);
+        await streamCommand(
+          "npx",
+          [
+            "hardhat",
+            "prove",
+            "--poll",
+            pollId.toString(),
+            "--output-dir",
+            "tally-output",
+            "--coordinator-private-key",
+            resolvedCoordinatorPrivateKey,
+            "--tally-file",
+            tallyFile,
+            "--network",
+            "localhost",
+          ],
+          undefined,
+          [resolvedCoordinatorPrivateKey],
+        );
 
         const tallyData = readJsonFile(tallyFile);
         if (!tallyData) {
